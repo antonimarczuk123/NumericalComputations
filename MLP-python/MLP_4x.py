@@ -38,37 +38,7 @@ X_val = (X_val - X_min) / (X_max - X_min)  # Przeskalowanie do [0, 1]
 
 
 # %% __________________________________________________________________
-# Inicjalizacja wag i biasów sieci. Możemy też wczytać z pliku 
-# zapisane wcześniej wagi i kontynuować uczenie.
-
-
-# # Wczytaj zapisane wagi modelu oraz poprzednie kroki minimalizacji
-
-# data = np.load(f"weights_4x30.npz")
-
-# b1 = data['b1']
-# W1 = data['W1']
-# b2 = data['b2']
-# W2 = data['W2']
-# b3 = data['b3']
-# W3 = data['W3']
-# b4 = data['b4']
-# W4 = data['W4']
-# b5 = data['b5']
-# W5 = data['W5']
-
-# p_b1_old = data['p_b1_old']
-# p_W1_old = data['p_W1_old']
-# p_b2_old = data['p_b2_old']
-# p_W2_old = data['p_W2_old']
-# p_b3_old = data['p_b3_old']
-# p_W3_old = data['p_W3_old']
-# p_b4_old = data['p_b4_old']
-# p_W4_old = data['p_W4_old']
-# p_b5_old = data['p_b5_old']
-# p_W5_old = data['p_W5_old']
-
-# ------------------
+# Inicjalizacja wag i biasów sieci.
 
 # Losowa inicjalizacja wag i biasów
 
@@ -110,7 +80,7 @@ p_W5_old = np.zeros((n_outputs, n_hidden[3]))
 # Uczenie sieci metodą SGD + Nesterov momentum.
 
 
-max_epochs = 3000 # maksymalna liczba epok
+max_epochs = 500 # maksymalna liczba epok
 learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.9 # współczynnik momentum
 mb_size = 64 # rozmiar mini-batcha
@@ -334,18 +304,6 @@ ax2.grid(True, which='major', linestyle='-')   # grubsze linie dla głównych
 ax2.grid(True, which='minor', linestyle='--', alpha=0.5)   # cieńsze dla pomocniczych
 
 plt.tight_layout() # ładniej wyglądają wykresy
-
-
-
-# %% __________________________________________________________________
-# Zapisanie wyznaczonych wag modelu i poprzednich kroków minimalizacji.
-
-
-# Zapisanie wyznaczonych wag modelu i poprzednich kroków minimalizacji
-np.savez(f"weights_4x30.npz", 
-    b1=b1, W1=W1, b2=b2, W2=W2, b3=b3, W3=W3, b4=b4, W4=W4, b5=b5, W5=W5,
-    p_b1_old=p_b1_old, p_W1_old=p_W1_old, p_b2_old=p_b2_old, p_W2_old=p_W2_old, p_b3_old=p_b3_old, 
-    p_W3_old=p_W3_old, p_b4_old=p_b4_old, p_W4_old=p_W4_old, p_b5_old=p_b5_old, p_W5_old=p_W5_old)
 
 
 
