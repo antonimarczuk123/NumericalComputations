@@ -15,11 +15,8 @@ import matplotlib.pyplot as plt
 Fun = lambda x: np.sin(x[0,:]) + np.cos(x[1,:])
 
 n_inputs = 2 # liczba wejść
-n_hidden = (30, 30, 30, 30) # liczba neuronów w warstwach ukrytych
+n_hidden = (50, 50, 50, 50) # liczba neuronów w warstwach ukrytych
 n_outputs = 1 # liczba wyjść
-
-fi = lambda x: np.tanh(x) # funkcja aktywacji neuronów ukrytych
-dfi = lambda x: 1 - np.tanh(x)**2 # pochodna funkcji aktywacji
 
 n_train = 10000 # liczba próbek uczących
 n_val = 3000   # liczba próbek walidujących
@@ -174,11 +171,10 @@ W5_look = np.zeros(W5.shape)
 MSEtrainTab = np.zeros((max_epochs+1, 1))
 MSEvalTab = np.zeros((max_epochs+1, 1))
 
-
 # Wyjściowe wartości MSE na zbiorze uczącym i walidującym
 
-Ymodel_train = b5 + W5 @ fi(b4 + W4 @ fi(b3 + W3 @ fi(b2 + W2 @ fi(b1 + W1 @ X_train))))
-Ymodel_val =   b5 + W5 @ fi(b4 + W4 @ fi(b3 + W3 @ fi(b2 + W2 @ fi(b1 + W1 @ X_val))))
+Ymodel_train = b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_train))))
+Ymodel_val =   b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_val))))
 
 MSEtrain = np.mean((Ymodel_train - Y_train) ** 2)
 MSEval = np.mean((Ymodel_val - Y_val) ** 2)
@@ -208,21 +204,21 @@ for i in range(max_epochs):
 
         # Forward pass
         Z1 = W1_look @ X + b1_look
-        V1 = fi(Z1)
+        V1 = np.tanh( Z1)
         Z2 = W2_look @ V1 + b2_look
-        V2 = fi(Z2)
+        V2 = np.tanh( Z2)
         Z3 = W3_look @ V2 + b3_look
-        V3 = fi(Z3)
+        V3 = np.tanh( Z3)
         Z4 = W4_look @ V3 + b4_look
-        V4 = fi(Z4)
+        V4 = np.tanh( Z4)
         Y_hat = W5_look @ V4 + b5_look
 
         # Backward pass
         dL_Z5 = 2 * (Y_hat - Y)
-        dL_Z4 = (W5_look.T @ dL_Z5) * dfi(Z4)
-        dL_Z3 = (W4_look.T @ dL_Z4) * dfi(Z3)
-        dL_Z2 = (W3_look.T @ dL_Z3) * dfi(Z2)
-        dL_Z1 = (W2_look.T @ dL_Z2) * dfi(Z1)
+        dL_Z4 = (W5_look.T @ dL_Z5) * (1 - V4 ** 2)
+        dL_Z3 = (W4_look.T @ dL_Z4) * (1 - V3 ** 2)
+        dL_Z2 = (W3_look.T @ dL_Z3) * (1 - V2 ** 2)
+        dL_Z1 = (W2_look.T @ dL_Z2) * (1 - V1 ** 2)
 
         # Gradienty
         dE_db5 = np.mean(dL_Z5, axis=1, keepdims=True)
@@ -272,8 +268,8 @@ for i in range(max_epochs):
         p_b1_old = p_b1
         p_W1_old = p_W1
 
-    Ymodel_train = b5 + W5 @ fi(b4 + W4 @ fi(b3 + W3 @ fi(b2 + W2 @ fi(b1 + W1 @ X_train))))
-    Ymodel_val =   b5 + W5 @ fi(b4 + W4 @ fi(b3 + W3 @ fi(b2 + W2 @ fi(b1 + W1 @ X_val))))
+    Ymodel_train = b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_train))))
+    Ymodel_val =   b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_val))))
 
     MSEtrain = np.mean((Ymodel_train - Y_train) ** 2)
     MSEval = np.mean((Ymodel_val - Y_val) ** 2)
@@ -312,8 +308,8 @@ plt.tight_layout() # ładniej wyglądają wykresy
 
 # --- Ocena modelu ---
 
-Ymodel_train = b5 + W5 @ fi(b4 + W4 @ fi(b3 + W3 @ fi(b2 + W2 @ fi(b1 + W1 @ X_train))))
-Ymodel_val =   b5 + W5 @ fi(b4 + W4 @ fi(b3 + W3 @ fi(b2 + W2 @ fi(b1 + W1 @ X_val))))
+Ymodel_train = b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_train))))
+Ymodel_val =   b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_val))))
 
 MSEtrain = np.mean((Ymodel_train - Y_train) ** 2)
 MSEval = np.mean((Ymodel_val - Y_val) ** 2)
