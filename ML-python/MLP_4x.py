@@ -1,5 +1,5 @@
 # %% __________________________________________________________________
-# Sieć neuronowa z czterema warstwami ukrytymi neuronów.
+# MLP z czterema warstwami ukrytymi neuronów.
 # Uczenie metodą SGD + Nesterov momentum.
 # Autor: Antoni Marczuk
 
