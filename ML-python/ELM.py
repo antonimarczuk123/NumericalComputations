@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 Fun = lambda x: np.sin(x[0,:]) * np.cos(x[1,:])
 
 n_inputs = 2 # liczba wejść
-n_hidden = 2000 # liczba neuronów ukrytych
+n_hidden = 500 # liczba neuronów ukrytych
 n_outputs = 1 # liczba wyjść
 
 fi = lambda x: np.tanh(x) # funkcja aktywacji neuronów ukrytych
