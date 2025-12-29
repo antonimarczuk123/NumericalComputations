@@ -15,11 +15,8 @@ import matplotlib.pyplot as plt
 Fun = lambda x: np.sin(x[0,:]) + np.cos(x[1,:])
 
 n_inputs = 2 # liczba wejść
-n_hidden = (50, 50, 50, 50) # liczba neuronów w warstwach ukrytych
+n_hidden = (30, 30, 30, 30) # liczba neuronów w warstwach ukrytych
 n_outputs = 1 # liczba wyjść
-
-fi = lambda x: np.tanh(x) # funkcja aktywacji neuronów ukrytych
-dfi = lambda x: 1 - np.tanh(x)**2 # pochodna funkcji aktywacji
 
 n_train = 10000 # liczba próbek uczących
 n_val = 3000   # liczba próbek walidujących
@@ -58,20 +55,20 @@ W5 = np.random.uniform(-0.5, 0.5, (n_outputs, n_hidden[3]))
 
 # zerowa inicjalizacja poprzednich kroków minimalizacji
 
-p_b1_old = np.zeros((n_hidden[0], 1))
-p_W1_old = np.zeros((n_hidden[0], n_inputs))
+p_b1_old = np.zeros(b1.shape)
+p_W1_old = np.zeros(W1.shape)
 
-p_b2_old = np.zeros((n_hidden[1], 1))
-p_W2_old = np.zeros((n_hidden[1], n_hidden[0]))
+p_b2_old = np.zeros(b2.shape)
+p_W2_old = np.zeros(W2.shape)
 
-p_b3_old = np.zeros((n_hidden[2], 1))
-p_W3_old = np.zeros((n_hidden[2], n_hidden[1]))
+p_b3_old = np.zeros(b3.shape)
+p_W3_old = np.zeros(W3.shape)
 
-p_b4_old = np.zeros((n_hidden[3], 1))
-p_W4_old = np.zeros((n_hidden[3], n_hidden[2]))
+p_b4_old = np.zeros(b4.shape)
+p_W4_old = np.zeros(W4.shape)
 
-p_b5_old = np.zeros((n_outputs, 1))
-p_W5_old = np.zeros((n_outputs, n_hidden[3]))
+p_b5_old = np.zeros(b5.shape)
+p_W5_old = np.zeros(W5.shape)
 
 
 
@@ -93,6 +90,8 @@ Y = np.zeros((n_outputs, mb_size))
 
 # ---
 
+# Z0 = V0 = X
+
 Z1 = np.zeros((n_hidden[0], mb_size))
 V1 = np.zeros((n_hidden[0], mb_size))
 
@@ -105,67 +104,67 @@ V3 = np.zeros((n_hidden[2], mb_size))
 Z4 = np.zeros((n_hidden[3], mb_size))
 V4 = np.zeros((n_hidden[3], mb_size))
 
-Z5 = np.zeros((n_outputs, mb_size))
+# Z5 = V5 = Y_hat
 Y_hat = np.zeros((n_outputs, mb_size))
 
 # ---
 
-p_b1 = np.zeros((n_hidden[0], 1))
-p_W1 = np.zeros((n_hidden[0], n_inputs))
+p_b1 = np.zeros(b1.shape)
+p_W1 = np.zeros(W1.shape)
 
-p_b2 = np.zeros((n_hidden[1], 1))
-p_W2 = np.zeros((n_hidden[1], n_hidden[0]))
+p_b2 = np.zeros(b2.shape)
+p_W2 = np.zeros(W2.shape)
 
-p_b3 = np.zeros((n_hidden[2], 1))
-p_W3 = np.zeros((n_hidden[2], n_hidden[1]))
+p_b3 = np.zeros(b3.shape)
+p_W3 = np.zeros(W3.shape)
 
-p_b4 = np.zeros((n_hidden[3], 1))
-p_W4 = np.zeros((n_hidden[3], n_hidden[2]))
+p_b4 = np.zeros(b4.shape)
+p_W4 = np.zeros(W4.shape)
 
-p_b5 = np.zeros((n_outputs, 1))
-p_W5 = np.zeros((n_outputs, n_hidden[3]))
-
-# ---
-
-dL5 = np.zeros((n_outputs, mb_size))
-dL4 = np.zeros((n_hidden[3], mb_size))
-dL3 = np.zeros((n_hidden[2], mb_size))
-dL2 = np.zeros((n_hidden[1], mb_size))
-dL1 = np.zeros((n_hidden[0], mb_size))
+p_b5 = np.zeros(b5.shape)
+p_W5 = np.zeros(W5.shape)
 
 # ---
 
-dE_db1 = np.zeros((n_hidden[0], 1))
-dE_dW1 = np.zeros((n_hidden[0], n_inputs))
-
-dE_db2 = np.zeros((n_hidden[1], 1))
-dE_dW2 = np.zeros((n_hidden[1], n_hidden[0]))
-
-dE_db3 = np.zeros((n_hidden[2], 1))
-dE_dW3 = np.zeros((n_hidden[2], n_hidden[1]))
-
-dE_db4 = np.zeros((n_hidden[3], 1))
-dE_dW4 = np.zeros((n_hidden[3], n_hidden[2]))
-
-dE_db5 = np.zeros((n_outputs, 1))
-dE_dW5 = np.zeros((n_outputs, n_hidden[3]))
+dL_Z5 = np.zeros(Y_hat.shape)
+dL_Z4 = np.zeros(Z4.shape)
+dL_Z3 = np.zeros(Z3.shape)
+dL_Z2 = np.zeros(Z2.shape)
+dL_Z1 = np.zeros(Z1.shape)
 
 # ---
 
-b1_look = np.zeros((n_hidden[0], 1))
-W1_look = np.zeros((n_hidden[0], n_inputs))
+dE_db1 = np.zeros(b1.shape)
+dE_dW1 = np.zeros(W1.shape)
 
-b2_look = np.zeros((n_hidden[1], 1))
-W2_look = np.zeros((n_hidden[1], n_hidden[0]))
+dE_db2 = np.zeros(b2.shape)
+dE_dW2 = np.zeros(W2.shape)
 
-b3_look = np.zeros((n_hidden[2], 1))
-W3_look = np.zeros((n_hidden[2], n_hidden[1]))
+dE_db3 = np.zeros(b3.shape)
+dE_dW3 = np.zeros(W3.shape)
 
-b4_look = np.zeros((n_hidden[3], 1))
-W4_look = np.zeros((n_hidden[3], n_hidden[2]))
+dE_db4 = np.zeros(b4.shape)
+dE_dW4 = np.zeros(W4.shape)
 
-b5_look = np.zeros((n_outputs, 1))
-W5_look = np.zeros((n_outputs, n_hidden[3]))
+dE_db5 = np.zeros(b5.shape)
+dE_dW5 = np.zeros(W5.shape)
+
+# ---
+
+b1_look = np.zeros(b1.shape)
+W1_look = np.zeros(W1.shape)
+
+b2_look = np.zeros(b2.shape)
+W2_look = np.zeros(W2.shape)
+
+b3_look = np.zeros(b3.shape)
+W3_look = np.zeros(W3.shape)
+
+b4_look = np.zeros(b4.shape)
+W4_look = np.zeros(W4.shape)
+
+b5_look = np.zeros(b5.shape)
+W5_look = np.zeros(W5.shape)
 
 # ---
 
@@ -188,7 +187,7 @@ MSEvalTab[0] = MSEval
 # uczenie sieci metodą SGD+momentum
 for i in range(max_epochs):
     for j in range(100):
-        idx = np.random.permutation(n_train)[:mb_size]
+        idx = np.random.randint(0, n_train, size=mb_size)
         X = X_train[:, idx]
         Y = Y_train[:, idx]
 
@@ -206,34 +205,33 @@ for i in range(max_epochs):
 
         # Forward pass
         Z1 = W1_look @ X + b1_look
-        V1 = fi(Z1)
+        V1 = np.tanh(Z1) # f1 = tanh
         Z2 = W2_look @ V1 + b2_look
-        V2 = fi(Z2)
+        V2 = np.tanh(Z2) # f2 = tanh
         Z3 = W3_look @ V2 + b3_look
-        V3 = fi(Z3)
+        V3 = np.tanh(Z3) # f3 = tanh
         Z4 = W4_look @ V3 + b4_look
-        V4 = fi(Z4)
-        Z5 = W5_look @ V4 + b5_look
-        Y_hat = Z5
+        V4 = np.tanh(Z4) # f4 = tanh
+        Y_hat = W5_look @ V4 + b5_look
 
         # Backward pass
-        dL5 = 2 * (Y_hat - Y)
-        dL4 = (W5_look.T @ dL5) * dfi(Z4)
-        dL3 = (W4_look.T @ dL4) * dfi(Z3)
-        dL2 = (W3_look.T @ dL3) * dfi(Z2)
-        dL1 = (W2_look.T @ dL2) * dfi(Z1)
+        dL_Z5 = 2 * (Y_hat - Y)
+        dL_Z4 = (W5_look.T @ dL_Z5) * (1 - V4**2) # df4 = 1 - tanh^2
+        dL_Z3 = (W4_look.T @ dL_Z4) * (1 - V3**2) # df3 = 1 - tanh^2
+        dL_Z2 = (W3_look.T @ dL_Z3) * (1 - V2**2) # df2 = 1 - tanh^2
+        dL_Z1 = (W2_look.T @ dL_Z2) * (1 - V1**2) # df1 = 1 - tanh^2
 
         # Gradienty
-        dE_db5 = np.mean(dL5, axis=1, keepdims=True)
-        dE_dW5 = (dL5 @ V4.T) / mb_size
-        dE_db4 = np.mean(dL4, axis=1, keepdims=True)
-        dE_dW4 = (dL4 @ V3.T) / mb_size
-        dE_db3 = np.mean(dL3, axis=1, keepdims=True)
-        dE_dW3 = (dL3 @ V2.T) / mb_size
-        dE_db2 = np.mean(dL2, axis=1, keepdims=True)
-        dE_dW2 = (dL2 @ V1.T) / mb_size
-        dE_db1 = np.mean(dL1, axis=1, keepdims=True)
-        dE_dW1 = (dL1 @ X.T) / mb_size
+        dE_db5 = np.mean(dL_Z5, axis=1, keepdims=True)
+        dE_dW5 = (dL_Z5 @ V4.T) / mb_size
+        dE_db4 = np.mean(dL_Z4, axis=1, keepdims=True)
+        dE_dW4 = (dL_Z4 @ V3.T) / mb_size
+        dE_db3 = np.mean(dL_Z3, axis=1, keepdims=True)
+        dE_dW3 = (dL_Z3 @ V2.T) / mb_size
+        dE_db2 = np.mean(dL_Z2, axis=1, keepdims=True)
+        dE_dW2 = (dL_Z2 @ V1.T) / mb_size
+        dE_db1 = np.mean(dL_Z1, axis=1, keepdims=True)
+        dE_dW1 = (dL_Z1 @ X.T) / mb_size
 
         # Aktualizacja kroków
         p_b5 = momentum * p_b5_old - learning_rate * dE_db5

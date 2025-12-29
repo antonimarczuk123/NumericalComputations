@@ -1,5 +1,6 @@
 # %% __________________________________________________________________
 # MLP z 1 warstwą ukrytą.
+# Na koniec douczenie sieci metodą ELM.
 # Autor: Antoni Marczuk
 
 import numpy as np
@@ -14,11 +15,8 @@ import matplotlib.pyplot as plt
 Fun = lambda x: np.sin(x[0,:]) + np.cos(x[1,:])
 
 n_inputs = 2 # liczba wejść
-n_hidden = 50 # liczba neuronów ukrytych
+n_hidden = 500 # liczba neuronów ukrytych
 n_outputs = 1 # liczba wyjść
-
-fi = lambda x: np.tanh(x) # funkcja aktywacji neuronów ukrytych
-dfi = lambda x: 1 - np.tanh(x)**2 # pochodna funkcji aktywacji
 
 n_train = 10000 # liczba próbek uczących
 n_val = 3000   # liczba próbek walidujących
@@ -40,11 +38,11 @@ X_val = (X_val - X_min) / (X_max - X_min)  # Przeskalowanie do [0, 1]
 
 # Losowa inicjalizacja wag i biasów
 
-b1 = np.random.uniform(-10, 10, (n_hidden, 1))
-W1 = np.random.uniform(-10, 10, (n_hidden, n_inputs))
+b1 = np.random.uniform(-1, 1, (n_hidden, 1))
+W1 = np.random.uniform(-1, 1, (n_hidden, n_inputs))
 
-b2 = np.random.uniform(-10, 10, (n_outputs, 1))
-W2 = np.random.uniform(-10, 10, (n_outputs, n_hidden))
+b2 = np.random.uniform(-1, 1, (n_outputs, 1))
+W2 = np.random.uniform(-1, 1, (n_outputs, n_hidden))
 
 # zerowa inicjalizacja poprzednich kroków minimalizacji
 
@@ -58,7 +56,7 @@ p_W2_old = np.zeros(W2.shape)
 # %% __________________________________________________________________
 # Uczenie sieci metodą SGD + Nesterov momentum.
 
-max_epochs = 1000 # maksymalna liczba epok
+max_epochs = 500 # maksymalna liczba epok
 learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.9 # współczynnik momentum
 mb_size = 64 # rozmiar mini-batcha
@@ -90,8 +88,8 @@ p_W2 = np.zeros(W2.shape)
 
 # ---
 
-dL2 = np.zeros((n_outputs, mb_size))
-dL1 = np.zeros((n_hidden, mb_size))
+dL_Z2 = np.zeros(Y_hat.shape)
+dL_Z1 = np.zeros(Z1.shape)
 
 # ---
 
@@ -117,8 +115,8 @@ MSEvalTab = np.zeros((max_epochs+1, 1))
 
 # Wyjściowe wartości MSE na zbiorze uczącym i walidującym
 
-Ymodel_train = b2 + W2 @ fi(b1 + W1 @ X_train)
-Ymodel_val =   b2 + W2 @ fi(b1 + W1 @ X_val)
+Ymodel_train = b2 + W2 @ np.maximum(0, b1 + W1 @ X_train)
+Ymodel_val =   b2 + W2 @ np.maximum(0, b1 + W1 @ X_val)
 
 MSEtrain = np.mean((Ymodel_train - Y_train) ** 2)
 MSEval = np.mean((Ymodel_val - Y_val) ** 2)
@@ -142,18 +140,18 @@ for i in range(max_epochs):
 
         # Forward pass
         Z1 = W1_look @ X + b1_look
-        V1 = fi(Z1)
+        V1 = np.maximum(0, Z1) # f1 = ReLU
         Y_hat = W2_look @ V1 + b2_look
 
         # Backward pass
-        dL2 = 2 * (Y_hat - Y)
-        dL1 = (W2_look.T @ dL2) * dfi(Z1)
+        dL_Z2 = 2 * (Y_hat - Y)
+        dL_Z1 = (W2_look.T @ dL_Z2) * (Z1 > 0).astype(float) # df1
 
         # Gradienty
-        dE_db2 = np.mean(dL2, axis=1, keepdims=True)
-        dE_dW2 = (dL2 @ V1.T) / mb_size
-        dE_db1 = np.mean(dL1, axis=1, keepdims=True)
-        dE_dW1 = (dL1 @ X.T) / mb_size
+        dE_db2 = np.mean(dL_Z2, axis=1, keepdims=True)
+        dE_dW2 = (dL_Z2 @ V1.T) / mb_size
+        dE_db1 = np.mean(dL_Z1, axis=1, keepdims=True)
+        dE_dW1 = (dL_Z1 @ X.T) / mb_size
 
         # Aktualizacja kroków
         p_b2 = momentum * p_b2_old - learning_rate * dE_db2
@@ -173,8 +171,8 @@ for i in range(max_epochs):
         p_b1_old = p_b1
         p_W1_old = p_W1
 
-    Ymodel_train = b2 + W2 @ fi(b1 + W1 @ X_train)
-    Ymodel_val =   b2 + W2 @ fi(b1 + W1 @ X_val)
+    Ymodel_train = b2 + W2 @ np.maximum(0, b1 + W1 @ X_train)
+    Ymodel_val =   b2 + W2 @ np.maximum(0, b1 + W1 @ X_val)
 
     MSEtrain = np.mean((Ymodel_train - Y_train) ** 2)
     MSEval = np.mean((Ymodel_val - Y_val) ** 2)
@@ -213,8 +211,8 @@ plt.tight_layout() # ładniej wyglądają wykresy
 
 # --- Ocena modelu ---
 
-Ymodel_train = b2 + W2 @ fi(b1 + W1 @ X_train)
-Ymodel_val =   b2 + W2 @ fi(b1 + W1 @ X_val)
+Ymodel_train = b2 + W2 @ np.maximum(0, b1 + W1 @ X_train)
+Ymodel_val =   b2 + W2 @ np.maximum(0, b1 + W1 @ X_val)
 
 MSEtrain = np.mean((Ymodel_train - Y_train) ** 2)
 MSEval = np.mean((Ymodel_val - Y_val) ** 2)
@@ -255,7 +253,7 @@ plt.tight_layout() # ładniej wyglądają wykresy
 
 lambda_reg = 1e-10  # współczynnik regularizacji
 
-A = np.hstack(( np.ones((n_train, 1)), (fi(b1 + W1 @ X_train)).T ))
+A = np.hstack(( np.ones((n_train, 1)), (np.maximum(0, b1 + W1 @ X_train)).T ))
 W = np.linalg.solve(A.T @ A + lambda_reg * np.eye(n_hidden + 1), A.T @ Y_train.T)
 
 b2v2 = W[0]
@@ -267,8 +265,8 @@ W2v2 = W[1:].reshape(1, n_hidden)
 
 # --- Ocena modelu przed douczeniem ---
 
-Ymodel_train = b2v2 + W2v2 @ fi(W1 @ X_train + b1)
-Ymodel_val = b2v2 + W2v2 @ fi(W1 @ X_val + b1)
+Ymodel_train = b2v2 + W2v2 @ np.maximum(0, W1 @ X_train + b1)
+Ymodel_val = b2v2 + W2v2 @ np.maximum(0, W1 @ X_val + b1)
 
 MSEtrain = np.mean((Ymodel_train - Y_train) ** 2)
 MSEval = np.mean((Ymodel_val - Y_val) ** 2)
@@ -300,3 +298,4 @@ ax2.set_ylabel("Model Values")
 ax2.minorticks_on()  # włącza dodatkowe podziałki
 ax2.grid(True, which='major', linestyle='-')   # grubsze linie dla głównych
 ax2.grid(True, which='minor', linestyle='--', alpha=0.5)   # cieńsze dla pomocniczych
+
