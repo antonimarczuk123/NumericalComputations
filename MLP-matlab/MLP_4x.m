@@ -9,7 +9,7 @@ clear; clc;
 % Przygotowanie danych
 
 % funkcja do aproksymacji
-TestFun = @(x) sin(x(1,:)) + cos(x(2,:));
+TestFun = @(x) sin(x(1,:)) .* cos(x(2,:));
 
 n_inputs = 2;    % liczba wejść
 n_hidden = [30, 30, 30, 30]; % liczba neuronów w warstwach ukrytych
