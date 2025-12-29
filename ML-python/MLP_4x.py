@@ -18,6 +18,9 @@ n_inputs = 2 # liczba wejść
 n_hidden = (30, 30, 30, 30) # liczba neuronów w warstwach ukrytych
 n_outputs = 1 # liczba wyjść
 
+fi = lambda x: np.tanh(x) # funkcja aktywacji neuronów ukrytych
+dfi = lambda x: 1 - np.tanh(x)**2 # pochodna funkcji aktywacji
+
 n_train = 10000 # liczba próbek uczących
 n_val = 3000   # liczba próbek walidujących
 
@@ -205,21 +208,21 @@ for i in range(max_epochs):
 
         # Forward pass
         Z1 = W1_look @ X + b1_look
-        V1 = np.tanh(Z1) # f1 = tanh
+        V1 = fi(Z1)
         Z2 = W2_look @ V1 + b2_look
-        V2 = np.tanh(Z2) # f2 = tanh
+        V2 = fi(Z2)
         Z3 = W3_look @ V2 + b3_look
-        V3 = np.tanh(Z3) # f3 = tanh
+        V3 = fi(Z3)
         Z4 = W4_look @ V3 + b4_look
-        V4 = np.tanh(Z4) # f4 = tanh
+        V4 = fi(Z4)
         Y_hat = W5_look @ V4 + b5_look
 
         # Backward pass
         dL_Z5 = 2 * (Y_hat - Y)
-        dL_Z4 = (W5_look.T @ dL_Z5) * (1 - V4**2) # df4 = 1 - tanh^2
-        dL_Z3 = (W4_look.T @ dL_Z4) * (1 - V3**2) # df3 = 1 - tanh^2
-        dL_Z2 = (W3_look.T @ dL_Z3) * (1 - V2**2) # df2 = 1 - tanh^2
-        dL_Z1 = (W2_look.T @ dL_Z2) * (1 - V1**2) # df1 = 1 - tanh^2
+        dL_Z4 = (W5_look.T @ dL_Z5) * dfi(Z4)
+        dL_Z3 = (W4_look.T @ dL_Z4) * dfi(Z3)
+        dL_Z2 = (W3_look.T @ dL_Z3) * dfi(Z2)
+        dL_Z1 = (W2_look.T @ dL_Z2) * dfi(Z1)
 
         # Gradienty
         dE_db5 = np.mean(dL_Z5, axis=1, keepdims=True)
