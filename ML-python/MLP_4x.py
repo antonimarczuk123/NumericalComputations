@@ -1,7 +1,6 @@
 # %% __________________________________________________________________
-# Sieć neuronowa z czterema warstwami ukrytymi neuronów typu ReLU.
+# Sieć neuronowa z czterema warstwami ukrytymi neuronów.
 # Uczenie metodą SGD + Nesterov momentum.
-# Całość zaimplementowana z wykorzystaniem NumPy.
 # Autor: Antoni Marczuk
 
 import numpy as np
