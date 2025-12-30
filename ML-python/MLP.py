@@ -77,32 +77,20 @@ idx = np.zeros((1, mb_size), dtype=int)
 X = np.zeros((n_inputs, mb_size))
 Y = np.zeros((n_outputs, mb_size))
 
-# ---
-
 b_look = [np.zeros_like(bi) for bi in b] # biasy do kroku look-ahead
 W_look = [np.zeros_like(Wi) for Wi in W] # wagi do kroku look-ahead
-
-# ---
 
 Z = [np.zeros((ni, mb_size)) for ni in n_hidden]
 V = [np.zeros((ni, mb_size)) for ni in n_hidden]
 
-# ---
-
 p_b = [np.zeros_like(bi) for bi in b] # bieżące kroki minimalizacji dla biasów
 p_W = [np.zeros_like(Wi) for Wi in W] # bieżące kroki minimalizacji dla wag
-
-# ---
 
 # gradienty błędu względem sygnałów wejściowych do warstw
 dL_dZ = [np.zeros_like(Zi) for Zi in Z] + [np.zeros_like(Y)]
 
-# ---
-
 dE_db = [np.zeros_like(bi) for bi in b] # gradienty błędu względem biasów
 dE_dW = [np.zeros_like(Wi) for Wi in W] # gradienty błędu względem wag
-
-# ---
 
 MSEtrainTab = np.zeros((max_epochs+1, 1))
 MSEvalTab = np.zeros((max_epochs+1, 1))
