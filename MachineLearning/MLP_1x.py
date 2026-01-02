@@ -1,6 +1,7 @@
 # %% __________________________________________________________________
 # MLP z 1 warstwą ukrytą.
 # Na koniec douczenie sieci metodą ELM.
+# Funckje aktywacji: tanh dla warstw ukrytych, liniowa dla wyjściowej.
 # Autor: Antoni Marczuk
 
 import numpy as np
@@ -12,7 +13,7 @@ import matplotlib.pyplot as plt
 
 
 # Funkcja do aproksymacji
-Fun = lambda x: np.sin(x[0,:]) + np.cos(x[1,:])
+Fun = lambda x: 1000 * np.sin(x[0,:]) * np.cos(x[1,:]) / np.exp(0.01 * (x[0,:] + x[1,:]))
 
 n_inputs = 2 # liczba wejść
 n_hidden = 500 # liczba neuronów ukrytych
@@ -22,7 +23,8 @@ n_train = 10000 # liczba próbek uczących
 n_val = 3000   # liczba próbek walidujących
 
 # Generowanie próbek uczących i walidujących
-X_min = 0; X_max = 10
+X_min = 0; 
+X_max = 10
 
 X_train = np.random.uniform(X_min, X_max, (n_inputs, n_train))
 Y_train = Fun(X_train).reshape(n_outputs, n_train)
