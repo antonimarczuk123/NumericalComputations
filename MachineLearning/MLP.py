@@ -1,8 +1,8 @@
 # %% __________________________________________________________________
 # MLP z dowolną liczbą warstw ukrytych.
+# Funkcje aktywacji: tanh/relu dla warstw ukrytych, liniowa dla wyjściowej.
 # Uczenie metodą SGD + Nesterov momentum.
 # Autor: Antoni Marczuk
-
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,11 +13,13 @@ import matplotlib.pyplot as plt
 
 
 # Funkcja do aproksymacji
-Fun = lambda x: np.sin(x[0,:]) + np.cos(x[1,:])
+Fun = lambda x: 1000 * np.sin(x[0,:]) * np.cos(x[1,:]) / np.exp(0.01 * (x[0,:] + x[1,:]))
 
-n_inputs = 2 # liczba wejść
+n_inputs = 2 # liczba wejść (misi być takie jak w Fun)
 n_hidden = [10 for _ in range(20)] # liczba neuronów w warstwach ukrytych
-n_outputs = 1 # liczba wyjść
+n_outputs = 1 # liczba wyjść (nie zmianiać, bo kod zakłada 1 wyjście)
+
+activation_hidden = 'relu' # funkcja aktywacji warstw ukrytych: 'tanh' lub 'relu'
 
 m = len(n_hidden) # liczba warstw ukrytych
 
@@ -25,15 +27,24 @@ n_train = 10000 # liczba próbek uczących
 n_val = 3000   # liczba próbek walidujących
 
 # Generowanie próbek uczących i walidujących
-X_min = 0; X_max = 10
+
+X_min = 0
+X_max = 10
 
 X_train = np.random.uniform(X_min, X_max, (n_inputs, n_train))
 Y_train = Fun(X_train).reshape(n_outputs, n_train)
+
+Y_min = Y_train.min() # minimalna wartość Y w zbiorze uczącym
+Y_max = Y_train.max() # maksymalna wartość Y w zbiorze uczącym
+
 X_train = (X_train - X_min) / (X_max - X_min)  # Przeskalowanie do [0, 1]
+Y_train = (Y_train - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
 
 X_val = np.random.uniform(X_min, X_max, (n_inputs, n_val))
 Y_val = Fun(X_val).reshape(n_outputs, n_val)
+
 X_val = (X_val - X_min) / (X_max - X_min)  # Przeskalowanie do [0, 1]
+Y_val = (Y_val - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
 
 
 # %% __________________________________________________________________
@@ -41,24 +52,33 @@ X_val = (X_val - X_min) / (X_max - X_min)  # Przeskalowanie do [0, 1]
 
 
 # Losowa inicjalizacja biasów
+
+b_min = -0.5
+b_max = 0.5
+
 b = [None] * (m + 1)
-b[0] = np.random.uniform(-1, 1, (n_hidden[0], 1))
+b[0] = np.random.uniform(b_min, b_max, (n_hidden[0], 1))
 
 for i in range(1, m):
-    b[i] = np.random.uniform(-1, 1, (n_hidden[i], 1))
+    b[i] = np.random.uniform(b_min, b_max, (n_hidden[i], 1))
 
-b[m] = np.random.uniform(-1, 1, (n_outputs, 1))
+b[m] = np.random.uniform(b_min, b_max, (n_outputs, 1))
 
 # Losowa inicjalizacja wag
+
+w_min = -0.5
+w_max = 0.5
+
 W = [None] * (m + 1)
-W[0] = np.random.uniform(-1, 1, (n_hidden[0], n_inputs))
+W[0] = np.random.uniform(w_min, w_max, (n_hidden[0], n_inputs))
 
 for i in range(1, m):
-    W[i] = np.random.uniform(-1, 1, (n_hidden[i], n_hidden[i-1]))
+    W[i] = np.random.uniform(w_min, w_max, (n_hidden[i], n_hidden[i-1]))
 
-W[m] = np.random.uniform(-1, 1, (n_outputs, n_hidden[-1]))
+W[m] = np.random.uniform(w_min, w_max, (n_outputs, n_hidden[-1]))
 
 # zerowa inicjalizacja poprzednich kroków minimalizacji
+
 p_b_old = [np.zeros_like(bi) for bi in b]
 p_W_old = [np.zeros_like(Wi) for Wi in W]
 
@@ -66,10 +86,10 @@ p_W_old = [np.zeros_like(Wi) for Wi in W]
 # %% __________________________________________________________________
 # Uczenie sieci metodą SGD + Nesterov momentum.
 
-max_epochs = 500 # maksymalna liczba epok
+max_epochs = 100 # maksymalna liczba epok
 learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.9 # współczynnik momentum
-mb_size = 64 # rozmiar mini-batcha
+mb_size = 200 # rozmiar mini-batcha
 
 # deklaracja potrzebnych tablic
 
@@ -99,12 +119,18 @@ MSEvalTab = np.zeros((max_epochs+1, 1))
 
 Yhat_train = X_train
 for i in range(m):
-    Yhat_train = np.tanh(W[i] @ Yhat_train + b[i])
+    if activation_hidden == 'tanh':
+        Yhat_train = np.tanh(W[i] @ Yhat_train + b[i])
+    elif activation_hidden == 'relu':
+        Yhat_train = np.maximum(0, W[i] @ Yhat_train + b[i])
 Yhat_train = W[-1] @ Yhat_train + b[-1]
 
 Yhat_val = X_val
 for i in range(m):
-    Yhat_val = np.tanh(W[i] @ Yhat_val + b[i])
+    if activation_hidden == 'tanh':
+        Yhat_val = np.tanh(W[i] @ Yhat_val + b[i])
+    elif activation_hidden == 'relu':
+        Yhat_val = np.maximum(0, W[i] @ Yhat_val + b[i])
 Yhat_val = W[-1] @ Yhat_val + b[-1]
 
 MSEtrain = np.mean((Yhat_train - Y_train) ** 2)
@@ -115,7 +141,7 @@ MSEvalTab[0] = MSEval
 
 # uczenie sieci
 for epoch in range(max_epochs):
-    for iter in range(100):
+    for iter in range(300):
         idx = np.random.randint(0, n_train, size=mb_size)
         X = X_train[:, idx]
         Y = Y_train[:, idx]
@@ -126,11 +152,17 @@ for epoch in range(max_epochs):
 
         # Forward pass
         Z[0] = W_look[0] @ X + b_look[0]
-        V[0] = np.tanh(Z[0])
+        if activation_hidden == 'tanh':
+            V[0] = np.tanh(Z[0])
+        elif activation_hidden == 'relu':
+            V[0] = np.maximum(0, Z[0])
 
         for i in range(1, m):
             Z[i] = W_look[i] @ V[i-1] + b_look[i]
-            V[i] = np.tanh(Z[i])
+            if activation_hidden == 'tanh':
+                V[i] = np.tanh(Z[i])
+            elif activation_hidden == 'relu':
+                V[i] = np.maximum(0, Z[i])
 
         Y_hat = W_look[m] @ V[m-1] + b_look[m]
 
@@ -138,7 +170,10 @@ for epoch in range(max_epochs):
         dL_dZ[m] = 2 * (Y_hat - Y)
 
         for i in range(m-1, -1, -1):
-            dL_dZ[i] = (W_look[i+1].T @ dL_dZ[i+1]) * (1 - V[i] ** 2)
+            if activation_hidden == 'tanh':
+                dL_dZ[i] = (W_look[i+1].T @ dL_dZ[i+1]) * (1 - V[i] ** 2)
+            elif activation_hidden == 'relu':
+                dL_dZ[i] = (W_look[i+1].T @ dL_dZ[i+1]) * (Z[i] > 0).astype(float)
 
         # Gradienty
         dE_db[0] = np.mean(dL_dZ[0], axis=1, keepdims=True)
@@ -167,12 +202,18 @@ for epoch in range(max_epochs):
 
     Yhat_train = X_train
     for i in range(m):
-        Yhat_train = np.tanh(W[i] @ Yhat_train + b[i])
+        if activation_hidden == 'tanh':
+            Yhat_train = np.tanh(W[i] @ Yhat_train + b[i])
+        elif activation_hidden == 'relu':
+            Yhat_train = np.maximum(0, W[i] @ Yhat_train + b[i])
     Yhat_train = W[-1] @ Yhat_train + b[-1]
 
     Yhat_val = X_val
     for i in range(m):
-        Yhat_val = np.tanh(W[i] @ Yhat_val + b[i])
+        if activation_hidden == 'tanh':
+            Yhat_val = np.tanh(W[i] @ Yhat_val + b[i])
+        elif activation_hidden == 'relu':
+            Yhat_val = np.maximum(0, W[i] @ Yhat_val + b[i])
     Yhat_val = W[-1] @ Yhat_val + b[-1]
 
     MSEtrain = np.mean((Yhat_train - Y_train) ** 2)
@@ -213,12 +254,18 @@ plt.tight_layout() # ładniej wyglądają wykresy
 
 Yhat_train = X_train
 for i in range(m):
-    Yhat_train = np.tanh(W[i] @ Yhat_train + b[i])
+    if activation_hidden == 'tanh':
+        Yhat_train = np.tanh(W[i] @ Yhat_train + b[i])
+    elif activation_hidden == 'relu':
+        Yhat_train = np.maximum(0, W[i] @ Yhat_train + b[i])
 Yhat_train = W[-1] @ Yhat_train + b[-1]
 
 Yhat_val = X_val
 for i in range(m):
-    Yhat_val = np.tanh(W[i] @ Yhat_val + b[i])
+    if activation_hidden == 'tanh':
+        Yhat_val = np.tanh(W[i] @ Yhat_val + b[i])
+    elif activation_hidden == 'relu':
+        Yhat_val = np.maximum(0, W[i] @ Yhat_val + b[i])
 Yhat_val = W[-1] @ Yhat_val + b[-1]
 
 MSEtrain = np.mean((Yhat_train - Y_train) ** 2)
