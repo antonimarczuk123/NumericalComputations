@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 Fun = lambda x: 1000 * np.sin(x[0,:]) * np.cos(x[1,:]) / np.exp(0.01 * (x[0,:] + x[1,:]))
 
 n_inputs = 2 # liczba wejść
-n_hidden = 500 # liczba neuronów ukrytych
+n_hidden = 100 # liczba neuronów ukrytych
 n_outputs = 1 # liczba wyjść
 
 n_train = 10000 # liczba próbek uczących
