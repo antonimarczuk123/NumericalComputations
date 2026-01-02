@@ -47,20 +47,20 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
 
 # Losowa inicjalizacja wag i biasów
 
-b1 = np.random.uniform(-0.5, 0.5, (n_hidden[0], 1))
-W1 = np.random.uniform(-0.5, 0.5, (n_hidden[0], n_inputs))
+b1 = np.random.randn(n_hidden[0], 1)
+W1 = np.random.randn(n_hidden[0], n_inputs)
 
-b2 = np.random.uniform(-0.5, 0.5, (n_hidden[1], 1))
-W2 = np.random.uniform(-0.5, 0.5, (n_hidden[1], n_hidden[0]))
+b2 = np.random.randn(n_hidden[1], 1)
+W2 = np.random.randn(n_hidden[1], n_hidden[0])
 
-b3 = np.random.uniform(-0.5, 0.5, (n_hidden[2], 1))
-W3 = np.random.uniform(-0.5, 0.5, (n_hidden[2], n_hidden[1]))
+b3 = np.random.randn(n_hidden[2], 1)
+W3 = np.random.randn(n_hidden[2], n_hidden[1])
 
-b4 = np.random.uniform(-0.5, 0.5, (n_hidden[3], 1))
-W4 = np.random.uniform(-0.5, 0.5, (n_hidden[3], n_hidden[2]))
+b4 = np.random.randn(n_hidden[3], 1)
+W4 = np.random.randn(n_hidden[3], n_hidden[2])
 
-b5 = np.random.uniform(-0.5, 0.5, (n_outputs, 1))
-W5 = np.random.uniform(-0.5, 0.5, (n_outputs, n_hidden[3]))
+b5 = np.random.randn(n_outputs, 1)
+W5 = np.random.randn(n_outputs, n_hidden[3])
 
 # zerowa inicjalizacja poprzednich kroków minimalizacji
 
@@ -85,7 +85,7 @@ p_W5_old = np.zeros(W5.shape)
 # Uczenie sieci metodą SGD + Nesterov momentum.
 
 
-max_epochs = 500 # maksymalna liczba epok
+max_epochs = 200 # maksymalna liczba epok
 learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.9 # współczynnik momentum
 mb_size = 64 # rozmiar mini-batcha
@@ -194,7 +194,7 @@ MSEvalTab[0] = MSEval
 
 # uczenie sieci metodą SGD+momentum
 for i in range(max_epochs):
-    for j in range(100):
+    for j in range(300):
         idx = np.random.randint(0, n_train, size=mb_size)
         X = X_train[:, idx]
         Y = Y_train[:, idx]
