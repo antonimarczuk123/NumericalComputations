@@ -23,16 +23,23 @@ n_train = 10000 # liczba próbek uczących
 n_val = 3000   # liczba próbek walidujących
 
 # Generowanie próbek uczących i walidujących
-X_min = 0; 
+X_min = 0
 X_max = 10
 
 X_train = np.random.uniform(X_min, X_max, (n_inputs, n_train))
 Y_train = Fun(X_train).reshape(n_outputs, n_train)
+
+Y_min = Y_train.min() # minimalna wartość Y w zbiorze uczącym
+Y_max = Y_train.max() # maksymalna wartość Y w zbiorze uczącym
+
 X_train = (X_train - X_min) / (X_max - X_min)  # Przeskalowanie do [0, 1]
+Y_train = (Y_train - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
 
 X_val = np.random.uniform(X_min, X_max, (n_inputs, n_val))
 Y_val = Fun(X_val).reshape(n_outputs, n_val)
+
 X_val = (X_val - X_min) / (X_max - X_min)  # Przeskalowanie do [0, 1]
+Y_val = (Y_val - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
 
 
 # %% __________________________________________________________________
