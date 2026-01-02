@@ -1,7 +1,7 @@
 # %% __________________________________________________________________
 # MLP z dowolną liczbą warstw ukrytych.
-# Funkcje aktywacji: tanh dla warstw ukrytych, liniowa dla wyjściowej.
 # Uczenie metodą SGD + Nesterov momentum.
+# Funkcje aktywacji: tanh dla warstw ukrytych, liniowa dla wyjściowej.
 # Autor: Antoni Marczuk
 
 import numpy as np

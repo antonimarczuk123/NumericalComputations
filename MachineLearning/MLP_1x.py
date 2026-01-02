@@ -1,5 +1,6 @@
 # %% __________________________________________________________________
 # MLP z 1 warstwą ukrytą.
+# Uczenie metodą SGD + Nesterov momentum.
 # Na koniec douczenie sieci metodą ELM.
 # Funckje aktywacji: tanh dla warstw ukrytych, liniowa dla wyjściowej.
 # Autor: Antoni Marczuk
