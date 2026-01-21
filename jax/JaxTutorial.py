@@ -607,6 +607,7 @@ def cond_fun(carry):
     cond_i = (i < 100_000)
     cond_sum = (s < 1000.0)
 
+    # operatory bitowe: &, |, ~
     return cond_i & cond_sum
 
 def body_fun(carry):
