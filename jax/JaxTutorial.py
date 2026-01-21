@@ -10,8 +10,8 @@ from jax import grad
 from jax import value_and_grad
 from jax import vmap
 from jax import jit
-from jax.lax import scan
 from jax.lax import fori_loop
+from jax.lax import scan
 from jax.lax import while_loop
 from jax.lax import cond
 from jax.lax import switch
@@ -426,7 +426,7 @@ def for_body(i, carry):
     x = cond(i % 10_000 == 0,
         lambda x, w: x - w,
         lambda x, w: x + w, 
-    x, w)
+        x, w)
 
     return (x, key)
 
@@ -468,7 +468,7 @@ def for_body(i, carry):
         lambda x, w: x + w,
         lambda x, w: x - w,
         lambda x, w: x * w
-    ], x, w )
+        ], x, w )
 
     return (x, key)
 
@@ -506,7 +506,8 @@ def for_body(i, carry):
 
     cond(i % 10_000 == 0,
         lambda i: jprint("Iteration {}", i),
-        lambda i: None, i)
+        lambda i: None, 
+        i)
 
     return (x, key)
 
@@ -543,7 +544,8 @@ def for_body(i, carry):
 
     cond(i % 10_000 == 0,
         lambda i: io_callback(progress_print, None, i),
-        lambda i: None, i)
+        lambda i: None, 
+        i)
 
     return (x, key)
 
