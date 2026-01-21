@@ -749,7 +749,27 @@ print(Hfv_xv)
 
 
 # %% ===================================================================
-# jacfwd
+# jacfwd, jacrev
+
+def f(x):
+    y0 = x[0] ** 2 + x[4]
+    y1 = jnp.sin(x[1]) + x[2]
+    y2 = jnp.exp(x[3]) + jnp.log(x[2] + 1.0)
+    return jnp.array([y0, y1, y2])
+
+Jf_fwd = jacfwd(f)  # Jf_fwd(x)
+Jf_rev = jacrev(f)  # Jf_rev(x)
+
+x = jnp.array([0.5, 1.0, 1.5, 2.0, 2.5])
+
+Jf_fwd_x = Jf_fwd(x)
+Jf_rev_x = Jf_rev(x)
+
+print(Jf_fwd_x)
+print()
+
+print(Jf_rev_x)
+print()
 
 
 
