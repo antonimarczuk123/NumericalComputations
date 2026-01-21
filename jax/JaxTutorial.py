@@ -10,6 +10,8 @@ from jax import grad
 from jax import value_and_grad
 from jax import vmap
 from jax import jit
+from jax import jacrev, jacfwd
+from jax import hessian
 from jax.tree_util import tree_map
 from jax.lax import fori_loop
 from jax.lax import scan
@@ -710,5 +712,45 @@ lr = 0.01
 new_params = tree_map(lambda p, g: p - lr * g, params, grads)
 
 print(new_params)
+
+
+
+# %% =================================================================
+# hessian
+
+def f(x):
+    return jnp.sin(x[0] * x[2]) - jnp.cos(x[1])
+
+Hf = hessian(f)  # Hf(x)
+
+x = jnp.array([0.5, 1.0, 1.5])
+Hf_x = Hf(x)
+
+print(Hf_x)
+
+
+
+# %% ===================================================================
+# Przydatne i proste liczenie hessjanu razy wektor
+# Hxf(x) @ v = Dx ( Dxf(x) dot v ) 
+
+def f(x):
+    return jnp.sin(x[0] * x[2]) - jnp.cos(x[1])
+
+def Hfv(f, x, v):
+    return grad(lambda x: jnp.vdot(grad(f)(x), v))(x)
+
+x = jnp.array([0.5, 1.0, 1.5])
+v = jnp.array([1.0, 0.0, -1.0])
+Hfv_xv = Hfv(f, x, v)
+
+print(Hfv_xv)
+
+
+
+# %% ===================================================================
+# jacfwd
+
+
 
 
