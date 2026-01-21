@@ -789,7 +789,7 @@ print()
 # %% ===================================================================
 # Hessian via jacfwd and jacrev
 
-"""To implement hessian, we could have used jacfwd(jacrev(f)) or jacrev(jacfwd(f)) or any other composition of the two. But forward-over-reverse is typically the most efficient. That is because in the inner Jacobian computation we are often differentiating a function wide Jacobian (maybe like a loss function f: R^n -> R), while in the outer Jacobian computation we’re differentiating a function with a square Jacobian (since Df: R^n -> R^n ), which is where forward-mode wins out."""
+"""To implement hessian, we could have used jacfwd(jacrev(f)) or jacrev(jacfwd(f)) or any other composition of the two. But forward-over-reverse is typically the most efficient. That is because in the inner Jacobian computation we are often differentiating a function wide Jacobian (maybe like a loss function f: R^n -> R), while in the outer Jacobian computation we are differentiating a function with a square Jacobian (since Df: R^n -> R^n ), which is where forward-mode wins out."""
 
 def Hess(f):
     return jacfwd(jacrev(f))
