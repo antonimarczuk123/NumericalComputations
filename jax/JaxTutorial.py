@@ -10,6 +10,9 @@ from jax import grad, vmap
 from jax import jit
 from jax.lax import scan
 from jax.lax import fori_loop
+from jax.lax import cond
+from jax.debug import print as jprint
+from jax.experimental import io_callback
 from jax import device_put
 
 
@@ -404,15 +407,6 @@ x.block_until_ready()
 
 print(partial_results[:10])     # wydruk pierwszych 10 sum
 print(x[:10])                   # wydruk pierwszych 10 x
-
-
-
-
-
-
-
-
-
 
 
 
