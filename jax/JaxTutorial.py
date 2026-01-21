@@ -687,11 +687,9 @@ print()
 # tree_map
 
 # tree_map pozwala na zastosowanie funkcji do odpowiadających sobie liści.
-# Dzięki temu możamy np. łatwo aktualizować wagi w uczeniu sieci neuronowych:
-# new_params = tree_map(lambda p, g: p - lr * g, params, grads)
-# gdzie params i grads są PyTrees o tej samej strukturze.
+# Dzięki temu możamy np. łatwo aktualizować wagi w uczeniu sieci neuronowych.
 
-tree1 = {
+params = {
     'a': jnp.array([1.0, 2.0, 3.0]),
     'b': {
         'c': jnp.array([4.0, 5.0]),
@@ -699,7 +697,7 @@ tree1 = {
     }
 }
 
-tree2 = {
+grads = {
     'a': jnp.array([10.0, 20.0, 30.0]),
     'b': {
         'c': jnp.array([40.0, 50.0]),
@@ -707,14 +705,10 @@ tree2 = {
     }
 }
 
-tree3 = tree_map(lambda x, y: x + y, tree1, tree2)
+lr = 0.01
 
-print(tree3)
+new_params = tree_map(lambda p, g: p - lr * g, params, grads)
 
-
-
-
-
-
+print(new_params)
 
 
