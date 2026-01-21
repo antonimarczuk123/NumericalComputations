@@ -28,8 +28,8 @@ from jax import device_put
 # for        |   x   |   v
 # while      |   x   |   v
 # cond       |   v   |   v
-# while_loop |   v   |   v
-# fori_loop  |   v   |   v
+# while_loop |   v   |  fwd
+# fori_loop  |   v   |  fwd
 # scan       |   v   |   v
 
 
