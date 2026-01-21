@@ -748,14 +748,43 @@ print(Hf_x)
 def f(x):
     return jnp.sin(x[0] * x[2]) - jnp.cos(x[1])
 
-def Hfv(f, x, v):
-    return grad(lambda x: jnp.vdot(grad(f)(x), v))(x)
+Dxf = grad(f) # Dxf(x)
+
+def Dxf_dot_v(x, v): # Dxf(x) dot v
+    return jnp.vdot(Dxf(x), v)
+
+Hfv = grad(Dxf_dot_v)  # Dx ( Dxf(x) dot v )
 
 x = jnp.array([0.5, 1.0, 1.5])
 v = jnp.array([1.0, 0.0, -1.0])
-Hfv_xv = Hfv(f, x, v)
+Hfv_xv = Hfv(x, v)
 
 print(Hfv_xv)
+
+
+
+# %% ===================================================================
+# Przydatne i proste liczenie zakrzywienia w kierunku v
+# v.T @ Hxf(x) @ v = v dot Dx ( Dxf(x) dot v )
+
+def f(x):
+    return jnp.sin(x[0] * x[2]) - jnp.cos(x[1])
+
+Dxf = grad(f) # Dxf(x)
+
+def Dxf_dot_v(x, v): # Dxf(x) dot v
+    return jnp.vdot(Dxf(x), v)
+
+Hfv = grad(Dxf_dot_v)  # Dx ( Dxf(x) dot v )
+
+def vHfv(x, v): # v.T @ Hxf(x) @ v
+    return jnp.vdot(v, Hfv(x, v))
+
+x = jnp.array([0.5, 1.0, 1.5])
+v = jnp.array([1.0, 0.0, -1.0])
+
+vHfv_xv = vHfv(x, v)
+print(vHfv_xv)
 
 
 
@@ -799,9 +828,10 @@ def f(x):
 
 Hf = Hess(f)  # Hf(x)
 
-x = jnp.array([0.5, 1.0, 1.5])
+x = jnp.array([0.5, 1.0, 1.5], device=gpu)
 Hf_x = Hf(x)
 
 print(Hf_x)
+print(Hf_x.device)
 
 
