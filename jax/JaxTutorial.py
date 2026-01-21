@@ -23,16 +23,17 @@ from jax.experimental import io_callback
 from jax import device_put
 
 
-
-# construct  |  jit  |  grad
-# --------------------------
-# if         |   x   |   v
-# for        |   x   |   v
-# while      |   x   |   v
-# cond       |   v   |   v
-# while_loop |   v   |  fwd
-# fori_loop  |   v   |  fwd
-# scan       |   v   |   v
+"""
+construct  |  jit  |  grad
+--------------------------
+if         |   x   |   v
+for        |   x   |   v
+while      |   x   |   v
+cond       |   v   |   v
+while_loop |   v   |  fwd
+fori_loop  |   v   |  fwd
+scan       |   v   |   v
+"""
 
 
 
@@ -325,13 +326,15 @@ x.block_until_ready()
 print(x[:10])
 
 
-# The semantics of fori_loop are given by this Python implementation:
+"""
+The semantics of fori_loop are given by this Python implementation:
 
-# def fori_loop(lower, upper, body_fun, init_val):
-#     val = init_val
-#     for i in range(lower, upper):
-#         val = body_fun(i, val)
-#     return val
+def fori_loop(lower, upper, body_fun, init_val):
+    val = init_val
+    for i in range(lower, upper):
+        val = body_fun(i, val)
+    return val
+"""
 
 
 
@@ -385,17 +388,19 @@ print(partial_results[:10])     # wydruk pierwszych 10 sum
 print(x[:10])                   # wydruk pierwszych 10 x
 
 
-# The semantics of scan are given by this Python implementation:
+"""
+The semantics of scan are given by this Python implementation:
 
-# def scan(f, init, xs, length=None):
-#     if xs is None:
-#         xs = [None] * length
-#     carry = init
-#     ys = []
-#     for x in xs:
-#         carry, y = f(carry, x)
-#         ys.append(y)
-#     return carry, np.stack(ys)
+def scan(f, init, xs, length=None):
+    if xs is None:
+        xs = [None] * length
+    carry = init
+    ys = []
+    for x in xs:
+        carry, y = f(carry, x)
+        ys.append(y)
+    return carry, np.stack(ys)
+"""
 
 
 
@@ -460,13 +465,15 @@ print("Loop finished.")
 print(x[:10])
 
 
-# The semantics of cond are given by this Python implementation:
+"""
+The semantics of cond are given by this Python implementation:
 
-# def cond(pred, true_fun, false_fun, operand):
-#   if pred:
-#     return true_fun(operand)
-#   else:
-#     return false_fun(operand)
+def cond(pred, true_fun, false_fun, operand):
+  if pred:
+    return true_fun(operand)
+  else:
+    return false_fun(operand)
+"""
 
 
 
@@ -502,11 +509,13 @@ print("Loop finished.")
 print(x[:10])
 
 
-# The semantics of switch are given by this Python implementation:
+"""
+The semantics of switch are given by this Python implementation:
 
-# def switch(index, branches, *operands):
-#     index = clamp(0, index, len(branches) - 1)
-#     return branches[index](*operands)
+def switch(index, branches, *operands):
+    index = clamp(0, index, len(branches) - 1)
+    return branches[index](*operands)
+"""
 
 
 
@@ -644,13 +653,15 @@ print("While loop finished at iteration:", i)
 print(jnp.sum(x))
 
 
-# The semantics of while_loop are given by this Python implementation:
+"""
+The semantics of while_loop are given by this Python implementation:
 
-# def while_loop(cond_fun, body_fun, init_carry):
-#     carry = init_carry
-#     while cond_fun(carry):
-#         carry = body_fun(carry)
-#     return carry
+def while_loop(cond_fun, body_fun, init_carry):
+    carry = init_carry
+    while cond_fun(carry):
+        carry = body_fun(carry)
+    return carry
+"""
 
 
 
@@ -751,6 +762,8 @@ print(Hfv_xv)
 # %% ===================================================================
 # jacfwd, jacrev
 
+"""These two functions compute the same values (up to machine numerics), but differ in their implementation: jacfwd uses forward-mode automatic differentiation, which is more efficient for “tall” Jacobian matrices (more outputs than inputs), while jacrev uses reverse-mode, which is more efficient for “wide” Jacobian matrices (more inputs than outputs). For matrices that are near-square, jacfwd probably has an edge over jacrev"""
+
 def f(x):
     y0 = x[0] ** 2 + x[4]
     y1 = jnp.sin(x[1]) + x[2]
@@ -772,5 +785,23 @@ print(Jf_rev_x)
 print()
 
 
+
+# %% ===================================================================
+# Hessian via jacfwd and jacrev
+
+"""To implement hessian, we could have used jacfwd(jacrev(f)) or jacrev(jacfwd(f)) or any other composition of the two. But forward-over-reverse is typically the most efficient. That is because in the inner Jacobian computation we are often differentiating a function wide Jacobian (maybe like a loss function f: R^n -> R), while in the outer Jacobian computation we’re differentiating a function with a square Jacobian (since Df: R^n -> R^n ), which is where forward-mode wins out."""
+
+def Hess(f):
+    return jacfwd(jacrev(f))
+
+def f(x):
+    return jnp.sin(x[0] * x[2]) - jnp.cos(x[1])
+
+Hf = Hess(f)  # Hf(x)
+
+x = jnp.array([0.5, 1.0, 1.5])
+Hf_x = Hf(x)
+
+print(Hf_x)
 
 
