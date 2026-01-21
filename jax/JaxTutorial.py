@@ -10,6 +10,9 @@ from jax import grad, vmap
 from jax import jit
 from jax.lax import scan
 from jax.lax import fori_loop
+from jax.lax import cond
+from jax.debug import print as jprint
+from jax.experimental import io_callback
 from jax import device_put
 
 
@@ -404,6 +407,74 @@ x.block_until_ready()
 
 print(partial_results[:10])     # wydruk pierwszych 10 sum
 print(x[:10])                   # wydruk pierwszych 10 x
+
+
+
+# %% ===================================================================
+# cond + jprint do monitorowania przebiegu obliczeń
+
+def for_body(i, carry):
+    x, key = carry
+    key, subkey = jrd.split(key)
+    w = jrd.normal(subkey, x.shape)
+    x = jnp.sin(x + w - i)
+
+    cond(i % 10_000 == 0,
+        lambda i: jprint("Iteration {}", i),
+        lambda i: None, i)
+
+    return (x, key)
+
+@jit
+def super_fast_loop(lower, upper, x_init, key_init):
+    x, key = fori_loop(lower, upper, for_body, (x_init, key_init))
+    return x, key
+
+N = 200_000
+key = jrd.key(0)
+x = jnp.linspace(0.0, 1.0, 1000)
+x, key = super_fast_loop(0, N, x, key)
+x.block_until_ready()
+
+print("Loop finished.")
+print(x[:10])
+
+
+
+# %% ===================================================================
+# cond + io_callback do monitorowania przebiegu obliczeń
+
+N = 200_000
+
+def progress_print(i):
+    progress = (i / N) * 100
+    print(f"\rIteration {progress:.2f}%", end='')
+
+def for_body(i, carry):
+    x, key = carry
+    key, subkey = jrd.split(key)
+    w = jrd.normal(subkey, x.shape)
+    x = jnp.sin(x + w - i)
+
+    cond(i % 10_000 == 0,
+        lambda i: io_callback(progress_print, None, i),
+        lambda i: None, i)
+
+    return (x, key)
+
+@jit
+def super_fast_loop(lower, upper, x_init, key_init):
+    x, key = fori_loop(lower, upper, for_body, (x_init, key_init))
+    return x, key
+
+key = jrd.key(0)
+x = jnp.linspace(0.0, 1.0, 1000)
+x, key = super_fast_loop(0, N, x, key)
+x.block_until_ready()
+
+print("\nLoop finished.")
+print(x[:10])
+
 
 
 
