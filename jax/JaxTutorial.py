@@ -20,6 +20,17 @@ from jax.experimental import io_callback
 from jax import device_put
 
 
+# construct  |  jit  |  grad
+# --------------------------
+# if         |   x   |   v
+# for        |   v*  |   v
+# while      |   v*  |   v
+# cond       |   v   |   v
+# while_loop |   v   |   v
+# fori_loop  |   v   |   v
+# scan       |   v   |   v
+
+
 
 # %% ===================================================================
 # Praca z urządzeniami (CPU, GPU)
