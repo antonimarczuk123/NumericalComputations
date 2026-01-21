@@ -656,7 +656,8 @@ print(jnp.sum(x))
 # PyTree
 
 # PyTree to zagnieżdżona struktura danych, której liśćmi są tablice JAX (jnp.ndarray).
-# JAX operuje na PyTrees zachowując ich strukturę, np. wykonując grad.
+# JAX operuje na PyTrees zachowując ich strukturę, np. wykonując grad dostajemy PyTree z 
+# pochodnymi o tej samej strukturze co struktura argumentu wejściowego funkcji.
 
 def f(x):
     return jnp.sum(x['a'] ** 2) + jnp.sum(x['b']['c'] ** 3) + jnp.sum(x['b']['d'] ** 4)
