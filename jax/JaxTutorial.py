@@ -303,6 +303,15 @@ x.block_until_ready()
 print(x[:10])
 
 
+# The semantics of fori_loop are given by this Python implementation:
+
+# def fori_loop(lower, upper, body_fun, init_val):
+#     val = init_val
+#     for i in range(lower, upper):
+#         val = body_fun(i, val)
+#     return val
+
+
 
 # %% ===================================================================
 # fori_loop z jit na cały fori_loop
@@ -352,6 +361,19 @@ x.block_until_ready()
 
 print(partial_results[:10])     # wydruk pierwszych 10 sum
 print(x[:10])                   # wydruk pierwszych 10 x
+
+
+# The semantics of scan are given by this Python implementation:
+
+# def scan(f, init, xs, length=None):
+#     if xs is None:
+#         xs = [None] * length
+#     carry = init
+#     ys = []
+#     for x in xs:
+#         carry, y = f(carry, x)
+#         ys.append(y)
+#     return carry, np.stack(ys)
 
 
 
