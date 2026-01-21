@@ -6,11 +6,15 @@ import time
 import jax
 import jax.numpy as jnp
 import jax.random as jrd
-from jax import grad, vmap
+from jax import grad
+from jax import value_and_grad
+from jax import vmap
 from jax import jit
 from jax.lax import scan
 from jax.lax import fori_loop
+from jax.lax import while_loop
 from jax.lax import cond
+from jax.lax import switch
 from jax.debug import print as jprint
 from jax.experimental import io_callback
 from jax import device_put
@@ -411,6 +415,87 @@ print(x[:10])                   # wydruk pierwszych 10 x
 
 
 # %% ===================================================================
+# cond
+
+def for_body(i, carry):
+    x, key = carry
+    key, subkey = jrd.split(key)
+    w = jrd.normal(subkey, x.shape)
+    x = jnp.sin(x + w - i)
+
+    x = cond(i % 10_000 == 0,
+        lambda x, w: x - w,
+        lambda x, w: x + w, 
+    x, w)
+
+    return (x, key)
+
+@jit
+def super_fast_loop(lower, upper, x_init, key_init):
+    x, key = fori_loop(lower, upper, for_body, (x_init, key_init))
+    return x, key
+
+N = 20_000
+key = jrd.key(0)
+x = jnp.linspace(0.0, 1.0, 1000)
+x, key = super_fast_loop(0, N, x, key)
+x.block_until_ready()
+
+print("Loop finished.")
+print(x[:10])
+
+
+# The semantics of cond are given by this Python implementation:
+
+# def cond(pred, true_fun, false_fun, operand):
+#   if pred:
+#     return true_fun(operand)
+#   else:
+#     return false_fun(operand)
+
+
+
+# %% ==================================================================
+# switch
+
+def for_body(i, carry):
+    x, key = carry
+    key, subkey = jrd.split(key)
+    w = jrd.normal(subkey, x.shape)
+    x = jnp.sin(x + w - i)
+
+    x = switch(i % 3, [
+        lambda x, w: x + w,
+        lambda x, w: x - w,
+        lambda x, w: x * w
+    ], x, w )
+
+    return (x, key)
+
+@jit
+def super_fast_loop(lower, upper, x_init, key_init):
+    x, key = fori_loop(lower, upper, for_body, (x_init, key_init))
+    return x, key
+
+N = 20_000
+key = jrd.key(0)
+x = jnp.linspace(0.0, 1.0, 1000)
+x, key = super_fast_loop(0, N, x, key)
+x.block_until_ready()
+
+print("Loop finished.")
+print(x[:10])
+
+
+# The semantics of switch are given by this Python implementation:
+
+# def switch(index, branches, *operands):
+#     index = clamp(0, index, len(branches) - 1)
+#     return branches[index](*operands)
+
+
+
+# %% ===================================================================
 # cond + jprint do monitorowania przebiegu obliczeń
 
 def for_body(i, carry):
@@ -474,6 +559,80 @@ x.block_until_ready()
 
 print("\nLoop finished.")
 print(x[:10])
+
+
+
+# %% ===================================================================
+# value_and_grad
+
+def f(x,y):
+    return jnp.sin(x[0] * x[2] - y[0]) - jnp.cos(y[1] * x[1])
+
+val_and_Dx_f = value_and_grad(f, 0) # val_and_Dxf(x,y)
+val_and_Dy_f = value_and_grad(f, 1) # val_and_Dyf(x,y)
+
+x = jnp.array([0.5, 1.0, 1.5])
+y = jnp.array([2.0, 3.0])
+
+f_xy, Dxf_xy = val_and_Dx_f(x, y)
+print(f_xy)
+print(Dxf_xy)
+
+f_xy, Dyf_xy = val_and_Dy_f(x, y)
+print(f_xy)
+print(Dyf_xy)
+
+
+
+# %% ==================================================================
+# while_loop z jit na całą pętlę
+
+def cond_fun(carry):
+    x, key, i = carry
+    s = jnp.sum(x)
+
+    cond_i = (i < 100_000)
+    cond_sum = (s < 1000.0)
+
+    return cond_i & cond_sum
+
+def body_fun(carry):
+    x, key, i = carry
+    key, subkey = jrd.split(key)
+    w = jrd.uniform(subkey, x.shape, minval=0.0, maxval=1e-5)
+    x = x + w
+    i += 1
+    s = jnp.sum(x)
+
+    cond(i % 10000 == 0,
+        lambda args: jprint("Iteracja: {}, Suma: {}", args[0], args[1]),
+        lambda args: None,
+        (i, s))
+
+    return (x, key, i)
+
+@jit
+def super_fast_while_loop(x_init, key_init):
+    init_carry = (x_init, key_init, 0)
+    x, key, i = while_loop(cond_fun, body_fun, init_carry)
+    return x, key, i
+
+x = jnp.linspace(0.0, 1.0, 1000)
+key = jrd.key(0)
+x, key, i = super_fast_while_loop(x, key)
+x.block_until_ready()
+
+print("While loop finished at iteration:", i)
+print(jnp.sum(x))
+
+
+# The semantics of while_loop are given by this Python implementation:
+
+# def while_loop(cond_fun, body_fun, init_carry):
+#     carry = init_carry
+#     while cond_fun(carry):
+#         carry = body_fun(carry)
+#     return carry
 
 
 
