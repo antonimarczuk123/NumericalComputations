@@ -2,26 +2,72 @@
 # importy
 
 import time
+
+import jax
 import jax.numpy as jnp
 import jax.random as jrd
 from jax import grad, vmap
 from jax import jit
 from jax.lax import scan
 from jax.lax import fori_loop
+from jax import device_put
+
+
+
+# %% ===================================================================
+# Praca z urządzeniami (CPU, GPU)
+
+# --------------------
+# Dostępne urządzenia
+print("Urządzenia CPU:", jax.devices("cpu"))
+print("Urządzenia GPU:", jax.devices("gpu"))
+
+# --------------------
+# Zapisywanie referencji do urządzeń
+cpu = jax.devices("cpu")[0]
+gpu = jax.devices("gpu")[0]
+
+# --------------------
+# Tworzenie tablic na CPU i GPU
+x = jnp.ones(3, dtype=jnp.float32, device=cpu)
+print("x.device: ", x.device)
+
+y = jnp.ones(3, dtype=jnp.float32, device=gpu)
+print("y.device: ", y.device)
+
+# W JAX obliczenia podążają za danymi, więc operacje na tablicach
+# będą wykonywane na urządzeniach, na których te tablice się znajdują.
+# Dotyczy to również funkcji, również tych kompilowanych przez jit.
+
+# --------------------
+# Przenoszenie tablic między urządzeniami
+gpu_x = device_put(x, device=gpu)
+print("gpu_x.device: ", gpu_x.device)
+
+cpu_y = device_put(y, device=cpu)
+print("cpu_y.device: ", cpu_y.device)
+
+# --------------------
+# Ustawienie domyślnego urządzenia na GPU
+jax.config.update("jax_default_device", gpu)
+
+x = jnp.ones(3, dtype=jnp.float32)
+print("x.device (default GPU): ", x.device)
+
+# --------------------
+# Ustawienie domyślnego urządzenia na CPU
+jax.config.update("jax_default_device", cpu)
+
+x = jnp.ones(3, dtype=jnp.float32)
+print("x.device (default CPU): ", x.device)
+
 
 
 # %% ===================================================================
 # grad
 
 def f(x,y):
-    x1 = x[0]
-    x2 = x[1]
-    x3 = x[2]
-
-    y1 = y[0]
-    y2 = y[1]
-
-    return jnp.sin(x1 * x3 - y1) - jnp.cos(y2 * x2)
+    return jnp.sin(x[0] * x[2] - y[0]) - jnp.cos(y[1] * x[1])
 
 Dxf = grad(f, 0) # Dxf(x,y)
 Dyf = grad(f, 1) # Dyf(x,y)
@@ -38,8 +84,15 @@ print(Dxf_xy)
 print(Dyf_xy)
 
 
+
 # %% ===================================================================
 # vmap
+
+def f(x,y):
+    return jnp.sin(x[0] * x[2] - y[0]) - jnp.cos(y[1] * x[1])
+
+Dxf = grad(f, 0) # Dxf(x,y)
+Dyf = grad(f, 1) # Dyf(x,y)
 
 vmap_f = vmap(f, in_axes=(0, 0))        # vmap_f(xBatch, yBatch)
 vmap_Dxf = vmap(Dxf, in_axes=(0, 0))    # vmap_Dxf(xBatch, yBatch)
@@ -71,6 +124,7 @@ print(vmap_Dyf_xy)
 print()
 
 
+
 # %% ===================================================================
 # random
 
@@ -83,7 +137,7 @@ seed = round(time.time_ns() % 1e6)
 key = jrd.key(seed)
 
 # Generowanie liczb losowych z rozkładu normalnego
-# Specjanie nie robimy splita dla każdego rozmiaru, aby pokazać, że
+# W tym miejscu specjalnie nie robimy splita dla każdego rozmiaru, aby pokazać, że
 # dostajemy te same liczby przy tym samym subkeyu. (Kolejny liczby sa generowane dla 
 # tego samego subkeya, ale counter się zwiększa co jeden).
 key, subkey = jrd.split(key)
@@ -132,8 +186,15 @@ arr2 = jrd.choice(subkey, arr, shape=(5,), replace=False)
 print(arr2)
 
 
+
 # %% ===================================================================
 # jit
+
+def f(x,y):
+    return jnp.sin(x[0] * x[2] - y[0]) - jnp.cos(y[1] * x[1])
+
+Dxf = grad(f, 0) # Dxf(x,y)
+Dyf = grad(f, 1) # Dyf(x,y)
 
 jit_f = jit(f)
 jit_Dxf = jit(Dxf)
@@ -152,8 +213,19 @@ print(jit_Dyf_xy)
 print()
 
 
+
 # %% ===================================================================
 # jit + vmap
+
+def f(x,y):
+    return jnp.sin(x[0] * x[2] - y[0]) - jnp.cos(y[1] * x[1])
+
+Dxf = grad(f, 0) # Dxf(x,y)
+Dyf = grad(f, 1) # Dyf(x,y)
+
+vmap_f = vmap(f, in_axes=(0, 0))        # vmap_f(xBatch, yBatch)
+vmap_Dxf = vmap(Dxf, in_axes=(0, 0))    # vmap_Dxf(xBatch, yBatch)
+vmap_Dyf = vmap(Dyf, in_axes=(0, 0))    # vmap_Dyf(xBatch, yBatch)
 
 jit_vmap_f = jit(vmap_f)
 jit_vmap_Dxf = jit(vmap_Dxf)
@@ -183,139 +255,133 @@ print(jit_vmap_Dyf_xy)
 print()
 
 
+
 # %% ===================================================================
-# jit + generowanie losowych liczb w funkcji + funkcja jit w pętli
-
-# Funkcja korzystająca z losowych liczb, musi otrzymywać klucz losowy jako argument
-# i zwracać nowy klucz po użyciu. To kontrakt funkcjonalny JAXa.
-
-# Pierwsze wywołanie jit_f będzie wolne, bo kompiluje funkcję.
-# Kolejne wywołania będą szybkie, bo już skompilowane.
-
-
-# Inicjalizacja klucza losowego
-key = jrd.key(0)
-x = jnp.linspace(0.0, 1.0, 1000)
+# for loop z jit na ciało pętli
 
 # Definicja funkcji
-def f(x, key, i):
-    key, subkey = jrd.split(key)
-    w = jrd.normal(subkey, x.shape)
-    out = jnp.sin(x + w - i)
-    return out, key
-
-jit_f = jit(f)
-
-# liczba iteracji pętli
-N = 10_000 
-
-# Wywołanie bez JIT
-
-start = time.time()
-
-for i in range(N):
-    x, key = f(x, key, i)
-
-end = time.time()
-print(f"\nTime for {N} iterations: {end - start} seconds\n")
-
-print(x[:10])
-
-# Wywołanie z JIT
-
-start = time.time()
-
-for i in range(N):
-    x, key = jit_f(x, key, i)
-x.block_until_ready()
-
-end = time.time()
-print(f"\nTime for {N} iterations: {end - start} seconds\n")
-
-print(x[:10])
-
-
-# %% ===================================================================
-# scan z jit na scan_body
-
-# scan_body - wrapper dla scan. 
-# scan można stosować bez jit, ale zastosowanie jit może przyspieszyć działanie.
-# scan_body jest kompilowane tylko raz, a potem wywoływane wiele razy w ramach scan.
-
-# carry:    to co przechodzi z kroku na krok (x, key) -> (x_next, key_next)
-# i:        aktualna wartość z sekwencji wejściowej
-
-@jit
-def scan_body(carry, i):
-    x, key = carry
-
+def for_body(x, key, i):
     key, subkey = jrd.split(key)
     w = jrd.normal(subkey, x.shape)
     x = jnp.sin(x + w - i)
+    return x, key
 
-    sum = jnp.sum(x)        # Obliczamy sumę elementów x jako wynik pośredni  
+jit_for_body = jit(for_body)
 
-    return (x, key), sum
+N = 10_000 
+key = jrd.key(0)
+x = jnp.linspace(0.0, 1.0, 1000)
 
-# Pomiar czasu
+for i in range(N):
+    x, key = jit_for_body(x, key, i)
 
-key_init = jrd.key(0)
-x_init = jnp.linspace(0.0, 1.0, 1000)
-iters = jnp.arange(200_000)
+x.block_until_ready()
 
-start = time.time()
+print(x[:10])
 
-(x_final, key_final), sums = scan(scan_body, (x_init, key_init), iters)
 
-x_final.block_until_ready()
-end = time.time()
 
-print(sums[:10])        # wydruk pierwszych 10 sum
-print(x_final[:10])     # wydruk pierwszych 10 x_final
-print(f"\nTime for {len(iters)} iterations: {end - start} seconds\n")
+# %% ==================================================================
+# fori_loop z jit na ciało pętli
+
+def for_body(i, carry):
+    x, key = carry
+    key, subkey = jrd.split(key)
+    w = jrd.normal(subkey, x.shape)
+    x = jnp.sin(x + w - i)
+    return (x, key)
+
+jit_for_body = jit(for_body)
+
+N = 10_000
+key = jrd.key(0)
+x = jnp.linspace(0.0, 1.0, 1000)
+
+x, key = fori_loop(0, N, jit_for_body, (x, key))
+x.block_until_ready()
+
+print(x[:10])
+
+
+
+# %% ===================================================================
+# fori_loop z jit na cały fori_loop
+
+def for_body(i, carry):
+    x, key = carry
+    key, subkey = jrd.split(key)
+    w = jrd.normal(subkey, x.shape)
+    x = jnp.sin(x + w - i)
+    return (x, key)
+
+@jit
+def super_fast_loop(lower, upper, x_init, key_init):
+    x, key = fori_loop(lower, upper, for_body, (x_init, key_init))
+    return x, key
+
+N = 10_000
+key = jrd.key(0)
+x = jnp.linspace(0.0, 1.0, 1000)
+x, key = super_fast_loop(0, N, x, key)
+x.block_until_ready()
+
+print(x[:10])
+
+
+
+# %% ===================================================================
+# scan z jit na ciało pętli
+
+def scan_body(carry, z):
+    x, key = carry
+    key, subkey = jrd.split(key)
+    w = jrd.normal(subkey, x.shape)
+    x = jnp.sin(x + w - z)
+    partial_result = jnp.sum(x) # Obliczamy sumę elementów x jako wynik pośredni  
+    return (x, key), partial_result
+
+jit_scan_body = jit(scan_body)
+
+key = jrd.key(0)
+x = jnp.linspace(0.0, 1.0, 1000)
+
+zs = jnp.linspace(0.0, 1.0, 10_000)
+
+(x, key), partial_results = scan(jit_scan_body, (x, key), zs)
+x.block_until_ready()
+
+print(partial_results[:10])     # wydruk pierwszych 10 sum
+print(x[:10])                   # wydruk pierwszych 10 x
+
 
 
 # %% ===================================================================
 # scan z jit na cały scan
 
-# scan_body - wrapper dla scan. 
-# carry:    to co przechodzi z kroku na krok (x, key) -> (x_next, key_next)
-# i:        aktualna wartość z sekwencji wejściowej
-def scan_body(carry, i):
-    x, key = carry
 
+def scan_body(carry, z):
+    x, key = carry
     key, subkey = jrd.split(key)
     w = jrd.normal(subkey, x.shape)
-    x = jnp.sin(x + w - i)
+    x = jnp.sin(x + w - z)
+    partial_result = jnp.sum(x) # Obliczamy sumę elementów x jako wynik pośredni  
+    return (x, key), partial_result
 
-    sum = jnp.sum(x)        # Obliczamy sumę elementów x jako wynik pośredni  
-
-    return (x, key), sum
-
-# super_fast_loop - funkcja opakowująca cały scan w jit
-# Dzięki temu cały scan jest skompilowany i działa bardzo szybko.
 @jit
-def super_fast_loop(x_init, key_init, iters):
-    (x_final, key_final), sums = scan(scan_body, (x_init, key_init), iters)
-    return (x_final, key_final), sums
+def super_fast_scan(x_init, key_init, zs):
+    (x, key), partial_results = scan(scan_body, (x_init, key_init), zs)
+    return (x, key), partial_results
 
-# Pomiar czasu
+key = jrd.key(0)
+x = jnp.linspace(0.0, 1.0, 1000)
 
-key_init = jrd.key(0)
-x_init = jnp.linspace(0.0, 1.0, 1000)
-iters = jnp.arange(200_000)
+zs = jnp.linspace(0.0, 1.0, 10_000)
 
-start = time.time()
+(x, key), partial_results = super_fast_scan(x, key, zs)
+x.block_until_ready()
 
-(x_final, key_final), sums = super_fast_loop(x_init, key_init, iters)
-
-x_final.block_until_ready()
-end = time.time()
-
-print(sums[:10])        # wydruk pierwszych 10 sum
-print(x_final[:10])     # wydruk pierwszych 10 x_final
-print(f"\nTime for {len(iters)} iterations: {end - start} seconds\n")
-
+print(partial_results[:10])     # wydruk pierwszych 10 sum
+print(x[:10])                   # wydruk pierwszych 10 x
 
 
 

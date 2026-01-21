@@ -1,9 +1,3 @@
-numpy           # Obsługa obliczeń numerycznych
-scipy           # Funkcje matematyczne i sygnałowe
+jax[cuda12]     # Wydajne obliczenia numeryczne
 matplotlib      # Wizualizacja danych
-sympy           # Obliczenia symboliczne
-ipykernel       # Uruchamianie notebooków Jupyter
-scikit-learn    # Uczenie maszynowe
-pandas          # Analiza i manipulacja danymi
-jax             # Wydajne obliczenia numeryczne
-
+ipykernel       # Obsługa Jupyter Notebook
