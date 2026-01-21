@@ -10,6 +10,7 @@ from jax import grad
 from jax import value_and_grad
 from jax import vmap
 from jax import jit
+from jax.tree_util import tree_map
 from jax.lax import fori_loop
 from jax.lax import scan
 from jax.lax import while_loop
@@ -18,6 +19,7 @@ from jax.lax import switch
 from jax.debug import print as jprint
 from jax.experimental import io_callback
 from jax import device_put
+
 
 
 # construct  |  jit  |  grad
@@ -647,6 +649,70 @@ print(jnp.sum(x))
 #     while cond_fun(carry):
 #         carry = body_fun(carry)
 #     return carry
+
+
+
+# %% ==================================================================
+# PyTree
+
+# PyTree to zagnieżdżona struktura danych, której liśćmi są tablice JAX (jnp.ndarray).
+# JAX operuje na PyTrees zachowując ich strukturę, np. wykonując grad.
+
+def f(x):
+    return jnp.sum(x['a'] ** 2) + jnp.sum(x['b']['c'] ** 3) + jnp.sum(x['b']['d'] ** 4)
+
+Dxf = grad(f)  # Dxf(x)
+
+x = {
+    'a': jnp.array([1.0, 2.0, 3.0]),
+    'b': {
+        'c': jnp.array([4.0, 5.0]),
+        'd': jnp.array([6.0])
+    }
+}
+
+f_x = f(x)
+Dxf_x = Dxf(x)
+
+print(f_x)
+print()
+
+print(Dxf_x)
+print()
+
+
+
+# %% ===================================================================
+# tree_map
+
+# tree_map pozwala na zastosowanie funkcji do odpowiadających sobie liści.
+# Dzięki temu możamy np. łatwo aktualizować wagi w uczeniu sieci neuronowych:
+# new_params = tree_map(lambda p, g: p - lr * g, params, grads)
+# gdzie params i grads są PyTrees o tej samej strukturze.
+
+tree1 = {
+    'a': jnp.array([1.0, 2.0, 3.0]),
+    'b': {
+        'c': jnp.array([4.0, 5.0]),
+        'd': jnp.array([6.0])
+    }
+}
+
+tree2 = {
+    'a': jnp.array([10.0, 20.0, 30.0]),
+    'b': {
+        'c': jnp.array([40.0, 50.0]),
+        'd': jnp.array([60.0])
+    }
+}
+
+tree3 = tree_map(lambda x, y: x + y, tree1, tree2)
+
+print(tree3)
+
+
+
+
 
 
 
