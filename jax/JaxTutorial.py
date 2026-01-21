@@ -613,7 +613,7 @@ def cond_fun(carry):
 def body_fun(carry):
     x, key, i = carry
     key, subkey = jrd.split(key)
-    w = jrd.uniform(subkey, x.shape, minval=0.0, maxval=1e-5)
+    w = jrd.uniform(subkey, x.shape, minval=0.0, maxval=2e-5)
     x = x + w
     i += 1
     s = jnp.sum(x)
