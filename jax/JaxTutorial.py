@@ -6,10 +6,10 @@ import time
 import jax
 import jax.numpy as jnp
 import jax.random as jrd
-from jax import grad
-from jax import value_and_grad
 from jax import vmap
 from jax import jit
+from jax import grad
+from jax import value_and_grad
 from jax import jacrev, jacfwd
 from jax import hessian
 from jax.tree_util import tree_map
@@ -618,10 +618,10 @@ def cond_fun(carry):
     s = jnp.sum(x)
 
     cond_i = (i < 100_000)
-    cond_sum = (s < 1000.0)
+    cond_s = (s < 1000.0)
 
     # operatory bitowe: &, |, ~
-    return cond_i & cond_sum
+    return cond_i & cond_s
 
 def body_fun(carry):
     x, key, i = carry
@@ -729,10 +729,12 @@ print(new_params)
 # %% =================================================================
 # hessian
 
+# x -> f(x)
 def f(x):
     return jnp.sin(x[0] * x[2]) - jnp.cos(x[1])
 
-Hf = hessian(f)  # Hf(x)
+# x -> Hxf(x)
+Hf = hessian(f)
 
 x = jnp.array([0.5, 1.0, 1.5])
 Hf_x = Hf(x)
@@ -742,18 +744,21 @@ print(Hf_x)
 
 
 # %% ===================================================================
-# Przydatne i proste liczenie hessjanu razy wektor
+# Przydatne i proste liczenie hessjanu razy wektor.
 # Hxf(x) @ v = Dx ( Dxf(x) dot v ) 
 
+# x -> f(x)
 def f(x):
     return jnp.sin(x[0] * x[2]) - jnp.cos(x[1])
 
-Dxf = grad(f) # Dxf(x)
+# x -> Dxf(x)
+Dxf = grad(f)
 
-def Dxf_dot_v(x, v): # Dxf(x) dot v
-    return jnp.vdot(Dxf(x), v)
+# (x, v) -> Dxf(x) dot v
+Dxf_dot_v = lambda x, v: jnp.vdot(Dxf(x), v)
 
-Hfv = grad(Dxf_dot_v)  # Dx ( Dxf(x) dot v )
+# (x, v) -> Hxf(x) @ v
+Hfv = grad(Dxf_dot_v, argnums=0)
 
 x = jnp.array([0.5, 1.0, 1.5])
 v = jnp.array([1.0, 0.0, -1.0])
@@ -764,21 +769,23 @@ print(Hfv_xv)
 
 
 # %% ===================================================================
-# Przydatne i proste liczenie zakrzywienia w kierunku v
+# Przydatne i proste liczenie zakrzywienia w kierunku v.
 # v.T @ Hxf(x) @ v = v dot Dx ( Dxf(x) dot v )
 
-def f(x):
-    return jnp.sin(x[0] * x[2]) - jnp.cos(x[1])
+# x -> f(x)
+f = lambda x: jnp.sin(x[0] * x[2]) - jnp.cos(x[1])
 
-Dxf = grad(f) # Dxf(x)
+# x -> Dxf(x)
+Dxf = grad(f)
 
-def Dxf_dot_v(x, v): # Dxf(x) dot v
-    return jnp.vdot(Dxf(x), v)
+# (x, v) -> Dxf(x) dot v
+Dxf_dot_v = lambda x, v: jnp.vdot(Dxf(x), v)
 
-Hfv = grad(Dxf_dot_v)  # Dx ( Dxf(x) dot v )
+# (x, v) -> Hxf(x) @ v
+Hfv = grad(Dxf_dot_v, argnums=0)
 
-def vHfv(x, v): # v.T @ Hxf(x) @ v
-    return jnp.vdot(v, Hfv(x, v))
+# (x, v) -> v.T @ Hxf(x) @ v
+vHfv = lambda x, v: jnp.vdot(v, Hfv(x, v))
 
 x = jnp.array([0.5, 1.0, 1.5])
 v = jnp.array([1.0, 0.0, -1.0])
@@ -820,6 +827,9 @@ print()
 
 """To implement hessian, we could have used jacfwd(jacrev(f)) or jacrev(jacfwd(f)) or any other composition of the two. But forward-over-reverse is typically the most efficient. That is because in the inner Jacobian computation we are often differentiating a function wide Jacobian (maybe like a loss function f: R^n -> R), while in the outer Jacobian computation we are differentiating a function with a square Jacobian (since Df: R^n -> R^n ), which is where forward-mode wins out."""
 
+cpu = jax.devices("cpu")[0]
+gpu = jax.devices("gpu")[0]
+
 def Hess(f):
     return jacfwd(jacrev(f))
 
@@ -833,5 +843,13 @@ Hf_x = Hf(x)
 
 print(Hf_x)
 print(Hf_x.device)
+
+
+
+# %% ===================================================================
+# 
+
+
+
 
 
