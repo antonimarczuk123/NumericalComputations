@@ -12,6 +12,7 @@ from jax import grad
 from jax import value_and_grad
 from jax import jacrev, jacfwd
 from jax import hessian
+from jax import jvp, vjp
 from jax.tree_util import tree_map
 from jax.lax import fori_loop
 from jax.lax import scan
@@ -847,9 +848,107 @@ print(Hf_x.device)
 
 
 # %% ===================================================================
-# 
+# jvp
+
+def f(x):
+    y0 = x[0] ** 2 + x[4]
+    y1 = jnp.sin(x[1]) + x[2]
+    y2 = jnp.exp(x[3]) + jnp.log(x[2] + 1.0)
+    return jnp.array([y0, y1, y2])
+
+x = jnp.array([0.5, 1.0, 1.5, 2.0, 2.5])
+v = jnp.array([1.0, 0.0, -1.0, 0.5, 2.0])
+
+# jvp: f, (x,), (v,) -> f(x), Dxf(x) @ v
+f_val, Dfv_val = jvp(f, (x,), (v,))
+
+print(f_val)
+print(Dfv_val)
+print()
+
+# -------------------------------------------
+
+def f(x,y):
+    z0 = x[0] ** 2 + x[4] - y[0]
+    z1 = jnp.sin(x[1]) + x[2] + y[1]
+    z2 = jnp.exp(x[3]) + jnp.log(x[2] + 1.0)
+    return jnp.array([z0, z1, z2])
+
+x = jnp.array([0.5, 1.0, 1.5, 2.0, 2.5])
+y = jnp.array([0.1, 0.2])
+
+vx = jnp.array([1.0, 0.0, -1.0, 0.5, 2.0])
+vy = jnp.array([0.5, -0.5])
+
+# jvp: f, (x, y), (vx, vy) -> f(x,y), Dxf(x,y) @ vx + Dyf(x,y) @ vy
+f_val, Dfv_val = jvp(f, (x, y), (vx, vy))
+
+print(f_val)
+print(Dfv_val)
+print()
+
+"""If we apply a JVP to a one-hot tangent vector, it reveals one column of the Jacobian matrix, corresponding to the nonzero entry we fed in. So we can build a full Jacobian one column at a time, and to get each column costs about the same as one function evaluation. That will be efficient for functions with “tall” Jacobians, but inefficient for “wide” Jacobians."""
 
 
+
+# %% ===================================================================
+# vjp
+
+def f(x):
+    y0 = x[0] ** 2 + x[4]
+    y1 = jnp.sin(x[1]) + x[2]
+    y2 = jnp.exp(x[3]) + jnp.log(x[2] + 1.0)
+    return jnp.array([y0, y1, y2])
+
+x = jnp.array([0.5, 1.0, 1.5, 2.0, 2.5])
+
+# vjp: f, x -> f(x), vDf_fun
+f_val, vDf_fun = vjp(f, x)
+
+# Obliczanie kolumn Jacobiana poprzez mnożenie przez wektory jednostkowe.
+# vDf_fun zwraca krotkę, w razie jednej zmiennej wejściowej mamy jeden element krotki.
+J0 = vDf_fun(jnp.array([1.0, 0.0, 0.0]))  # Pierwsza kolumna Jacobiana
+J1 = vDf_fun(jnp.array([0.0, 1.0, 0.0]))  # Druga kolumna Jacobiana
+J2 = vDf_fun(jnp.array([0.0, 0.0, 1.0]))  # Trzecia kolumna Jacobiana
+
+print(f_val)
+print(J0)
+print(J1)
+print(J2)
+print()
+
+# -------------------------------------------
+
+def f(x,y):
+    z0 = x[0] ** 2 + x[4] - y[0]
+    z1 = jnp.sin(x[1]) + x[2] + y[1]
+    z2 = jnp.exp(x[3]) + jnp.log(x[2] + 1.0)
+    return jnp.array([z0, z1, z2])
+
+x = jnp.array([0.5, 1.0, 1.5, 2.0, 2.5])
+y = jnp.array([0.1, 0.2])
+
+# vjp: f, (x, y) -> f(x,y), vDf_fun
+f_val, vDf_fun = vjp(f, x, y)
+
+# Obliczanie kolumn Jacobiana poprzez mnożenie przez wektory jednostkowe.
+# vDf_fun zwraca krotkę, w razie wielu zmiennych wejściowych mamy wiele elementów krotki
+# odpowiadających poszczególnym zmiennym wejściowym.
+J0 = vDf_fun(jnp.array([1.0, 0.0, 0.0]))  # Pierwsza kolumna Jacobiana
+J1 = vDf_fun(jnp.array([0.0, 1.0, 0.0]))  # Druga kolumna Jacobiana
+J2 = vDf_fun(jnp.array([0.0, 0.0, 1.0]))  # Trzecia kolumna Jacobiana
+
+J0x, J0y = J0
+J1x, J1y = J1
+J2x, J2y = J2
+
+print(f_val)
+print(J0)
+print(J1)
+print(J2)
+print()
+
+"""This is great because it lets us build Jacobian matrices one row at a time. if we want the gradient of a function f: R^n -> R, we can do it in just one call. That's how 'grad' is efficient for gradient-based optimization, even for objectives like neural network training loss functions on millions or billions of parameters."""
 
 
 
