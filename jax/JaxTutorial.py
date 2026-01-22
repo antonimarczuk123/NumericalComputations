@@ -24,7 +24,6 @@ from jax.debug import print as jprint
 from jax.experimental import io_callback
 from jax import device_put
 
-
 """
 construct  |  jit  |  grad
 --------------------------
@@ -35,6 +34,9 @@ cond       |   v   |   v
 while_loop |   v   |  fwd
 fori_loop  |   v   |  fwd
 scan       |   v   |   v
+
+JVP(x,v) = Df(x) @ v    - forward-mode automatic differentiation
+VJP(x,v) = v.T @ Df(x)  - reverse-mode automatic differentiation
 """
 
 
@@ -959,11 +961,13 @@ x = jnp.array([0.5, 1.0, 1.5, 2.0, 2.5])
 # vjp: f, x -> f(x), vjp_fun
 f_val, vjp_fun = vjp(f, x)
 
-# Obliczanie kolumn Jacobiana poprzez mnożenie przez wektory jednostkowe.
-# vjp_fun zwraca krotkę, w razie jednej zmiennej wejściowej mamy jeden element krotki.
-J0 = vjp_fun(jnp.array([1.0, 0.0, 0.0]))  # Pierwsza kolumna Jacobiana
-J1 = vjp_fun(jnp.array([0.0, 1.0, 0.0]))  # Druga kolumna Jacobiana
-J2 = vjp_fun(jnp.array([0.0, 0.0, 1.0]))  # Trzecia kolumna Jacobiana
+e1 = jnp.array([1.0, 0.0, 0.0])
+e2 = jnp.array([0.0, 1.0, 0.0])
+e3 = jnp.array([0.0, 0.0, 1.0])
+
+J0 = vjp_fun(e1)
+J1 = vjp_fun(e2)
+J2 = vjp_fun(e3)
 
 print(f_val)
 print(J0)
@@ -985,12 +989,13 @@ y = jnp.array([0.1, 0.2])
 # vjp: f, (x, y) -> f(x,y), vjp_fun
 f_val, vjp_fun = vjp(f, x, y)
 
-# Obliczanie kolumn Jacobiana poprzez mnożenie przez wektory jednostkowe.
-# vjp_fun zwraca krotkę, w razie wielu zmiennych wejściowych mamy wiele elementów krotki
-# odpowiadających poszczególnym zmiennym wejściowym.
-J0 = vjp_fun(jnp.array([1.0, 0.0, 0.0]))  # Pierwsza kolumna Jacobiana
-J1 = vjp_fun(jnp.array([0.0, 1.0, 0.0]))  # Druga kolumna Jacobiana
-J2 = vjp_fun(jnp.array([0.0, 0.0, 1.0]))  # Trzecia kolumna Jacobiana
+e1 = jnp.array([1.0, 0.0, 0.0])
+e2 = jnp.array([0.0, 1.0, 0.0])
+e3 = jnp.array([0.0, 0.0, 1.0])
+
+J0 = vjp_fun(e1)
+J1 = vjp_fun(e2)
+J2 = vjp_fun(e3)
 
 J0x, J0y = J0
 J1x, J1y = J1
@@ -1003,10 +1008,6 @@ print(J2)
 print()
 
 """This is great because it lets us build Jacobian matrices one row at a time. if we want the gradient of a function f: R^n -> R, we can do it in just one call. That's how 'grad' is efficient for gradient-based optimization, even for objectives like neural network training loss functions on millions or billions of parameters."""
-
-
-
-
 
 
 
