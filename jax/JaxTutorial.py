@@ -13,6 +13,7 @@ from jax import value_and_grad
 from jax import jacrev, jacfwd
 from jax import hessian
 from jax import jvp, vjp
+from jax import linearize
 from jax.tree_util import tree_map
 from jax.lax import fori_loop
 from jax.lax import scan
@@ -848,7 +849,9 @@ print(Hf_x.device)
 
 
 # %% ===================================================================
-# jvp
+# jvp - forward-mode automatic differentiation
+
+# jvp zwraca wartość funkcji oraz wartość JVP w danym kierunku.
 
 def f(x):
     y0 = x[0] ** 2 + x[4]
@@ -892,7 +895,9 @@ print()
 
 
 # %% ===================================================================
-# vjp
+# linearize
+
+# linearize zwraca wartość funkcji oraz funkcję do obliczania JVP w danym kierunku.
 
 def f(x):
     y0 = x[0] ** 2 + x[4]
@@ -902,14 +907,63 @@ def f(x):
 
 x = jnp.array([0.5, 1.0, 1.5, 2.0, 2.5])
 
-# vjp: f, x -> f(x), vDf_fun
-f_val, vDf_fun = vjp(f, x)
+# linearize: f, x -> f_x, ivp_fun
+f_x, jvp_fun = linearize(f, x)
+
+v = jnp.array([1.0, 0.0, -1.0, 0.5, 2.0])
+
+Dfv_val = jvp_fun(v)
+
+print(f_x)
+print(Dfv_val)
+print()
+
+# -------------------------------------------
+
+def f(x,y):
+    z0 = x[0] ** 2 + x[4] - y[0]
+    z1 = jnp.sin(x[1]) + x[2] + y[1]
+    z2 = jnp.exp(x[3]) + jnp.log(x[2] + 1.0)
+    return jnp.array([z0, z1, z2])
+
+x = jnp.array([0.5, 1.0, 1.5, 2.0, 2.5])
+y = jnp.array([0.1, 0.2])
+
+# linearize: f, (x, y) -> f_xy, jvp_fun
+f_xy, jvp_fun = linearize(f, x, y)
+
+v_x = jnp.array([1.0, 0.0, -1.0, 0.5, 2.0])
+v_y = jnp.array([0.5, -0.5])
+
+Dfv_val = jvp_fun(v_x, v_y)
+
+print(f_xy)
+print(Dfv_val)
+print()
+
+
+
+# %% ===================================================================
+# vjp - reverse-mode automatic differentiation
+
+# vjp zwraca wartość funkcji oraz funkcję do obliczania VJP w danym kierunku.
+
+def f(x):
+    y0 = x[0] ** 2 + x[4]
+    y1 = jnp.sin(x[1]) + x[2]
+    y2 = jnp.exp(x[3]) + jnp.log(x[2] + 1.0)
+    return jnp.array([y0, y1, y2])
+
+x = jnp.array([0.5, 1.0, 1.5, 2.0, 2.5])
+
+# vjp: f, x -> f(x), vjp_fun
+f_val, vjp_fun = vjp(f, x)
 
 # Obliczanie kolumn Jacobiana poprzez mnożenie przez wektory jednostkowe.
-# vDf_fun zwraca krotkę, w razie jednej zmiennej wejściowej mamy jeden element krotki.
-J0 = vDf_fun(jnp.array([1.0, 0.0, 0.0]))  # Pierwsza kolumna Jacobiana
-J1 = vDf_fun(jnp.array([0.0, 1.0, 0.0]))  # Druga kolumna Jacobiana
-J2 = vDf_fun(jnp.array([0.0, 0.0, 1.0]))  # Trzecia kolumna Jacobiana
+# vjp_fun zwraca krotkę, w razie jednej zmiennej wejściowej mamy jeden element krotki.
+J0 = vjp_fun(jnp.array([1.0, 0.0, 0.0]))  # Pierwsza kolumna Jacobiana
+J1 = vjp_fun(jnp.array([0.0, 1.0, 0.0]))  # Druga kolumna Jacobiana
+J2 = vjp_fun(jnp.array([0.0, 0.0, 1.0]))  # Trzecia kolumna Jacobiana
 
 print(f_val)
 print(J0)
@@ -928,15 +982,15 @@ def f(x,y):
 x = jnp.array([0.5, 1.0, 1.5, 2.0, 2.5])
 y = jnp.array([0.1, 0.2])
 
-# vjp: f, (x, y) -> f(x,y), vDf_fun
-f_val, vDf_fun = vjp(f, x, y)
+# vjp: f, (x, y) -> f(x,y), vjp_fun
+f_val, vjp_fun = vjp(f, x, y)
 
 # Obliczanie kolumn Jacobiana poprzez mnożenie przez wektory jednostkowe.
-# vDf_fun zwraca krotkę, w razie wielu zmiennych wejściowych mamy wiele elementów krotki
+# vjp_fun zwraca krotkę, w razie wielu zmiennych wejściowych mamy wiele elementów krotki
 # odpowiadających poszczególnym zmiennym wejściowym.
-J0 = vDf_fun(jnp.array([1.0, 0.0, 0.0]))  # Pierwsza kolumna Jacobiana
-J1 = vDf_fun(jnp.array([0.0, 1.0, 0.0]))  # Druga kolumna Jacobiana
-J2 = vDf_fun(jnp.array([0.0, 0.0, 1.0]))  # Trzecia kolumna Jacobiana
+J0 = vjp_fun(jnp.array([1.0, 0.0, 0.0]))  # Pierwsza kolumna Jacobiana
+J1 = vjp_fun(jnp.array([0.0, 1.0, 0.0]))  # Druga kolumna Jacobiana
+J2 = vjp_fun(jnp.array([0.0, 0.0, 1.0]))  # Trzecia kolumna Jacobiana
 
 J0x, J0y = J0
 J1x, J1y = J1
@@ -949,6 +1003,10 @@ print(J2)
 print()
 
 """This is great because it lets us build Jacobian matrices one row at a time. if we want the gradient of a function f: R^n -> R, we can do it in just one call. That's how 'grad' is efficient for gradient-based optimization, even for objectives like neural network training loss functions on millions or billions of parameters."""
+
+
+
+
 
 
 
