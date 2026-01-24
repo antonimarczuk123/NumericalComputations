@@ -851,7 +851,7 @@ print(Hf_x.device)
 
 
 # %% ===================================================================
-# jvp - forward-mode automatic differentiation
+# jvp
 
 # jvp zwraca wartość funkcji oraz wartość JVP w danym kierunku.
 
@@ -946,7 +946,7 @@ print()
 
 
 # %% ===================================================================
-# vjp - reverse-mode automatic differentiation
+# vjp
 
 # vjp zwraca wartość funkcji oraz funkcję do obliczania VJP w danym kierunku.
 
