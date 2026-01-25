@@ -854,6 +854,7 @@ print(Hf_x.device)
 # jvp
 
 # jvp zwraca wartość funkcji oraz wartość JVP w danym kierunku.
+# jvp(x,v) = Jf(x) @ v
 
 def f(x):
     y0 = x[0] ** 2 + x[4]
@@ -900,6 +901,7 @@ print()
 # linearize
 
 # linearize zwraca wartość funkcji oraz funkcję do obliczania JVP w danym kierunku.
+# jvp(x,v) = Jf(x) @ v
 
 def f(x):
     y0 = x[0] ** 2 + x[4]
@@ -949,6 +951,7 @@ print()
 # vjp
 
 # vjp zwraca wartość funkcji oraz funkcję do obliczania VJP w danym kierunku.
+# vjp(x,v) = v.T @ Jf(x)
 
 def f(x):
     y0 = x[0] ** 2 + x[4]
