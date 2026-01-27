@@ -1,3 +1,8 @@
-jax[cuda12]     # Wydajne obliczenia numeryczne
+numpy           # Obsługa tablic i operacje matematyczne
+numba           # Kompilacja Just-In-Time dla przyspieszenia
 matplotlib      # Wizualizacja danych
+sympy           # Symboliczne obliczenia matematyczne
+scipy           # Obliczenia naukowe
+pandas          # Analiza i manipulacja danymi
+jax[cuda12]     # Wydajne obliczenia numeryczne z obsługą GPU
 ipykernel       # Obsługa Jupyter Notebook
