@@ -1,4 +1,4 @@
-numpy           # Obsługa tablic i operacje matematyczne
+numpy<=2.3      # Podstawowe obliczenia numeryczne
 numba           # Kompilacja Just-In-Time dla przyspieszenia
 matplotlib      # Wizualizacja danych
 sympy           # Symboliczne obliczenia matematyczne
