@@ -25,9 +25,11 @@ def simulation(x0, k):
         y_new = 1.0 * x1_new + 0.1 * x2_new
         return y_new, x_new
 
+    # x = x(k)
+    # x_new = x(k+1)
     def step(carry, k):
-        x_prev = carry
-        y_new, x_new = obj(x_prev, 0.0)
+        x = carry
+        y_new, x_new = obj(x, 0.0)
         carry = x_new
         save = (y_new, x_new)
         return carry, save
