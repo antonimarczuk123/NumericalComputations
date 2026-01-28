@@ -6,7 +6,7 @@ from numba import njit
 
 
 @njit
-def run_simulation(steps, x0):
+def simulation(steps, x0):
     # x(k+1) = f(x(k), u(k))
     def f(x, u):
         x1, x2 = x
@@ -58,7 +58,7 @@ def run_simulation(steps, x0):
 # Parametry symulacji
 N = 150
 x_init = (0.0, 0.0)
-y, y_zad, u = run_simulation(N, x_init)
+y, y_zad, u = simulation(N, x_init)
 
 fig = plt.figure()
 ax1 = fig.add_subplot(211)

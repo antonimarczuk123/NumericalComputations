@@ -41,13 +41,10 @@ def simulation(x0, k):
         carry = (x, u, e)
         return carry, save
 
-    def run(x0, k):
-        u_prev = 0.0
-        e_prev = 0.0
-        _, saved = jax.lax.scan(step, (x0, u_prev, e_prev), k)
-        return saved
-    
-    return run(x0, k)
+    u_prev = 0.0
+    e_prev = 0.0
+    _, saved = jax.lax.scan(step, (x0, u_prev, e_prev), k)
+    return saved
 
 
 k = jnp.arange(0, 150)
