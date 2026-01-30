@@ -1,10 +1,13 @@
 # ==========================================================
-# Regulacja PID obiektu nieliniowego z opóźnieniem
+# Regulacja PID obiektu nieliniowego z małym opóźnieniem
 
 # Przyjęty okres próbkowania regulatora: Ts = 125sek.
 # Symulacja działa z krokiem h = Ts/20 = 6.25sek i wykorzystuje metodę RK4.
 # Opóźnienie sterowania: 2 okres próbkowania = 250sek.
 # Wykorzystano kompilację numba njit dla przyspieszenia długich symulacji.
+
+# Dzięki zastosowaniu adaptacyjnych nastawów regulatora PID mamy dobrą jakość regulacji
+# w całym szerokim zakresie pracy mimo, że obiekt jest nieliniowy.
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,6 +16,9 @@ from numba import njit
 # dx1/dt(t) = ( u(t-250) + z(t) -23 sqrt(x1(t)) ) / ( 0.7 x1(t) )
 # dx2/dt(t) = ( 23 sqrt(x1(t)) - 30 sqrt(x2(t)) ) / ( 1.35 x2(t)^2 )
 # y(t) = x2(t)
+
+# =========================================================
+# Kod symulacji
 
 @njit
 def obj(u_del, z, x):
@@ -24,22 +30,31 @@ def obj(u_del, z, x):
     return np.array([dx1_dt, dx2_dt])
 
 @njit
-def simulate():
-    x0 = np.array([50.0, 50.0]) # initial state
-    t0 = 0.0 # start time
-    tf = 130_000.0 # end time
-
+def controller(e, e_prev1, e_prev2, Ts, uu, y):
     # PID controller parameters
-    kp = 7.0
-    ki = 0.01
-    kd = 0
+    kd = 0.0 # nie używamy członu różniczkującego
+    ki = 0.005 # wspólny współczynnik całkujący
+    # Adaptacyjnie dobierane wzmocnienie kp ze względu na nieliniowość obiektu
+    kp = 2.0 + 3.0 * (y - 30.0) / 20.0
+
+    du = kp * (e - e_prev1) + ki * Ts / 2.0 * (e + e_prev1) + kd / Ts * (e - 2.0 * e_prev1 + e_prev2)
+    du = np.maximum(-2.0, np.minimum(2.0, du)) # ograniczenie przyrostu sterowania
+    uu = uu + du
+    uu = np.maximum(0.0, np.minimum(400.0, uu)) # ograniczenie sygnału sterującego
+    return uu
+
+@njit
+def simulate():
+    x0 = np.array([20.0, 20.0]) # initial state
+    t0 = 0.0 # start time
+    tf = 300_000.0 # end time
 
     Ts = 125.0 # okres próbkowania regulatora
     
-    reg_sim_factor = 20 # ile razy szybsza symulacja niż okres próbkowania
+    reg_sim_factor = 100 # ile razy szybsza symulacja niż okres próbkowania
     h = Ts / reg_sim_factor # krok symulacji
     n_steps = int((tf - t0) / h) + 1 # liczba kroków symulacji
-
+    
     delay = 2.0 * Ts # opóźnienie sterowania - czas
     delay_steps = int(delay / h) # opóźnienie sterowania - ile kroków symulacji wstecz
 
@@ -53,32 +68,36 @@ def simulate():
     y[0] = x0[1]
 
     # wartość zadana
-    r[(0 <= t) & (t <30_000)] = 50
-    r[(30_000 <= t) & (t < 100_000)] = 100
-    r[(100_000 <= t)] = 70
+    r[(0 <= t) & (t < 20_000)] = 15
+    r[(20_000 <= t) & (t < 80_000)] = 100
+    r[(80_000 <= t) & (t < 150_000)] = 50
+    r[(150_000 <= t) & (t < 200_000)] = 80
+    r[(200_000 <= t)] = 200
 
     # zakłócenie
-    z[(0 <= t) & (t < 15_000)] = 100
-    z[(15_000 <= t) & (t < 70_000)] = 50
-    z[(70_000 <= t)] = 100
+    z[(0 <= t) & (t < 10_000)] = 100.0
+    z[(10_000 <= t) & (t < 50_000)] = 50.0
+    z[(50_000 <= t) & (t < 120_000)] = 150.0
+    z[(120_000 <= t) & (t < 170_000)] = 50.0
+    z[(170_000 <= t) & (t < 260_000)] = 100.0
+    z[(260_000 <= t)] = 200.0
 
-    e = np.zeros(3)
+    e = 0.0
+    e_prev1 = 0.0
+    e_prev2 = 0.0
     uu = 0.0
     x = x0
 
     for k in range(n_steps - 1):
-        if k % 5000 == 0:
+        if k % 500_000 == 0:
             print("Simulating step", k, "/", n_steps - 1)
 
         # controller wyznacza sterowanie co Ts
         if k % reg_sim_factor == 0:
-            e[0] = r[k] - y[k]
-            du = kp * (e[0] - e[1]) + ki * Ts / 2.0 * (e[0] + e[1]) + kd / Ts * (e[0] - 2.0 * e[1] + e[2])
-            du = np.maximum(-2.0, np.minimum(2.0, du)) # ograniczenie przyrostu sterowania
-            uu = uu + du
-            uu = np.maximum(0.0, np.minimum(400.0, uu)) # ograniczenie sygnału sterującego
-            e[2] = e[1]
-            e[1] = e[0]
+            e = r[k] - y[k]
+            uu = controller(e, e_prev1, e_prev2, Ts, uu, y[k])
+            e_prev2 = e_prev1
+            e_prev1 = e
 
         # zero-order hold trzymamy wartość sterowania do następnej aktualizacji regulatora
         u[k] = uu
@@ -96,6 +115,9 @@ def simulate():
 
     print("\rSimulation completed.")
     return t[:-1], y[:-1], u[:-1], r[:-1], z[:-1]
+
+# =========================================================
+# Uruchomienie symulacji
 
 t, y, u, r, z = simulate()
 
