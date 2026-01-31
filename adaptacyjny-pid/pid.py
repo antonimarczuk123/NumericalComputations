@@ -47,7 +47,7 @@ def controller(e, e_prev1, e_prev2, Ts, uu, y):
 def simulate():
     x0 = np.array([20.0, 20.0]) # initial state
     t0 = 0.0 # start time
-    tf = 300_000.0 # end time
+    tf = 360_000.0 # end time
 
     Ts = 125.0 # okres próbkowania regulatora
     
@@ -72,7 +72,8 @@ def simulate():
     r[(20_000 <= t) & (t < 80_000)] = 100
     r[(80_000 <= t) & (t < 150_000)] = 50
     r[(150_000 <= t) & (t < 200_000)] = 80
-    r[(200_000 <= t)] = 200
+    r[(200_000 <= t) & (t < 300_000)] = 200
+    r[(300_000 <= t)] = 50
 
     # zakłócenie
     z[(0 <= t) & (t < 10_000)] = 100.0
