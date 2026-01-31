@@ -20,6 +20,8 @@ from numba import njit
 # =========================================================
 # Kod symulacji
 
+# TODO: zmienić implementację opóźnienia na całkowitą wielokrotność kroku symulacji.
+
 @njit
 def obj(u_del, z, x):
     x1, x2 = x
