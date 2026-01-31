@@ -1,26 +1,25 @@
 # ==========================================================
 # Regulacja PID obiektu nieliniowego z małym opóźnieniem
 
-# Przyjęty okres próbkowania regulatora: Ts = 125sek.
-# Symulacja działa z krokiem h = Ts/20 = 6.25sek i wykorzystuje metodę RK4.
-# Opóźnienie sterowania: 2 okres próbkowania = 250sek.
+# Symulacja działa z krokiem h i wykorzystuje metodę RK4.
+# Regulator działa z okresem próbkowania Ts.
 # Wykorzystano kompilację numba njit dla przyspieszenia długich symulacji.
 
 # Dzięki zastosowaniu adaptacyjnych nastawów regulatora PID mamy dobrą jakość regulacji
 # w całym szerokim zakresie pracy mimo, że obiekt jest nieliniowy.
+# Warto zauważyć, że PID dla małego opóźnienia radzi sobie całkiem nieźle, ale dla większych 
+# opóźnień należałoby zastosować regulator predykcyjny.
 
 import numpy as np
 import matplotlib.pyplot as plt
 from numba import njit
 
-# dx1/dt(t) = ( u(t-250) + z(t) -23 sqrt(x1(t)) ) / ( 0.7 x1(t) )
+# dx1/dt(t) = ( u(t-tau) + z(t) -23 sqrt(x1(t)) ) / ( 0.7 x1(t) )
 # dx2/dt(t) = ( 23 sqrt(x1(t)) - 30 sqrt(x2(t)) ) / ( 1.35 x2(t)^2 )
 # y(t) = x2(t)
 
 # =========================================================
 # Kod symulacji
-
-# TODO: zmienić implementację opóźnienia na całkowitą wielokrotność kroku symulacji.
 
 @njit
 def obj(u_del, z, x):
@@ -34,10 +33,10 @@ def obj(u_del, z, x):
 @njit
 def controller(e, e_prev1, e_prev2, Ts, uu, y):
     # PID controller parameters
-    kd = 0.0 # nie używamy członu różniczkującego
-    ki = 0.005 # wspólny współczynnik całkujący
+    kd = 0.0 # nie używamy członu różniczkującego, bo obiekt działa z opóźnieniem
+    ki = 0.0025 # wspólny współczynnik całkujący
     # Adaptacyjnie dobierane wzmocnienie kp ze względu na nieliniowość obiektu
-    kp = 2.0 + 3.0 * (y - 30.0) / 20.0
+    kp = 2.0 + 2.5 * (y - 30.0) / 20.0
 
     du = kp * (e - e_prev1) + ki * Ts / 2.0 * (e + e_prev1) + kd / Ts * (e - 2.0 * e_prev1 + e_prev2)
     du = np.maximum(-2.0, np.minimum(2.0, du)) # ograniczenie przyrostu sterowania
@@ -54,10 +53,10 @@ def simulate():
     Ts = 125.0 # okres próbkowania regulatora
     
     reg_sim_factor = 100 # ile razy szybsza symulacja niż okres próbkowania
-    h = Ts / reg_sim_factor # krok symulacji
+    h = Ts / reg_sim_factor # krok symulacji (rozdzielczość czasowa symulacji)
     n_steps = int((tf - t0) / h) + 1 # liczba kroków symulacji
     
-    delay = 2.0 * Ts # opóźnienie sterowania - czas
+    delay = 700.0 * h # opóźnienie sterowania - czas
     delay_steps = int(delay / h) # opóźnienie sterowania - ile kroków symulacji wstecz
 
     t = (t0 + np.arange(n_steps) * h).astype(np.float64)
