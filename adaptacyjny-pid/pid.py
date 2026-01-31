@@ -50,13 +50,13 @@ def simulate():
     t0 = 0.0 # start time
     tf = 360_000.0 # end time
 
-    Ts = 125.0 # okres próbkowania regulatora
+    Ts = 125.0 # okres próbkowania regulatora - (125 sek)
     
     reg_sim_factor = 100 # ile razy szybsza symulacja niż okres próbkowania
-    h = Ts / reg_sim_factor # krok symulacji (rozdzielczość czasowa symulacji)
+    h = Ts / reg_sim_factor # krok symulacji (rozdzielczość czasowa symulacji) - (1.25 sek)
     n_steps = int((tf - t0) / h) + 1 # liczba kroków symulacji
     
-    delay = 700.0 * h # opóźnienie sterowania - czas
+    delay = 700.0 * h # opóźnienie sterowania - czas - (875 sek)
     delay_steps = int(delay / h) # opóźnienie sterowania - ile kroków symulacji wstecz
 
     t = (t0 + np.arange(n_steps) * h).astype(np.float64)
