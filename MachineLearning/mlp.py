@@ -72,13 +72,12 @@ def initialize_mlp(key):
     for i in range(m - 1):
         b[i] = jnp.zeros((net_size[i + 1],))
 
-    w_min = -0.1
-    w_max = 0.1
-
     w = [None] * (m - 1)
     for i in range(m - 1):
+        limit = jnp.sqrt(6 / (net_size[i] + net_size[i + 1]))
         key, subkey = jrd.split(key)
-        w[i] = jrd.uniform(subkey, (net_size[i + 1], net_size[i]), minval=w_min, maxval=w_max)
+        w[i] = jrd.uniform(
+            subkey, (net_size[i + 1], net_size[i]), minval=-limit, maxval=limit)
 
     params = {'w': w, 'b': b}
 
@@ -93,7 +92,7 @@ def mlp_forward(params, x):
     v = x
     for i in range(m-2):
         v = jnp.dot(params['w'][i], v) + params['b'][i]
-        v = jax.nn.relu(v)
+        v = jax.nn.tanh(v)
     v = jnp.dot(params['w'][m-2], v) + params['b'][m-2]
     return v
 
@@ -163,14 +162,14 @@ def one_epoch(params, vel_params_old, X_train,
     
     return params_new, vel_params, key
 
-jit_one_epoch = jit(one_epoch)
+jit_one_epoch = jit(one_epoch, static_argnames=('batch_size',))
 
 
 
 # %% =================================================================
 # Uczenie
 
-max_epochs = 200 # maksymalna liczba epok
+max_epochs = 5000 # maksymalna liczba epok
 learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.9 # współczynnik momentum
 mb_size = 64 # rozmiar mini-batcha
@@ -190,6 +189,34 @@ for epoch in range(max_epochs):
     train_losses[epoch] = train_loss
     val_losses[epoch] = val_loss
     
-    if epoch % 10 == 0 or epoch == max_epochs - 1:
-        print(f"{epoch+1}/{max_epochs}: Train Loss = {train_loss:.6f}, Val Loss = {val_loss:.6f}")
+    if epoch % 50 == 0 or epoch == max_epochs - 1:
+        print(f"\r{epoch+1}/{max_epochs}: Train Loss = {train_loss:.12f}, Val Loss = {val_loss:.12f}", end='')
+
+fig1 = plt.figure()
+fig1.tight_layout()
+ax = fig1.add_subplot(111)
+
+ax.semilogy(train_losses, label='Train loss')
+ax.semilogy(val_losses, label='Val loss')
+ax.minorticks_on()
+ax.grid(True, which='major', linestyle='-')
+ax.grid(True, which='minor', linestyle='--', alpha=0.5)
+ax.legend()
+
+fig2 = plt.figure()
+fig2.tight_layout()
+ax1 = fig2.add_subplot(211)
+ax2 = fig2.add_subplot(212)
+
+ax1.scatter(Y_train, jit_vmap_mlp_forward(params, X_train), s=0.5, alpha=0.5)
+ax1.minorticks_on()
+ax1.grid(True, which='major', linestyle='-')
+ax1.grid(True, which='minor', linestyle='--', alpha=0.5)
+
+ax2.scatter(Y_val, jit_vmap_mlp_forward(params, X_val), s=0.5, alpha=0.5)
+ax2.minorticks_on()
+ax2.grid(True, which='major', linestyle='-')
+ax2.grid(True, which='minor', linestyle='--', alpha=0.5)
+
+plt.show()
 
