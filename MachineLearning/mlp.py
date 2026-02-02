@@ -25,10 +25,11 @@ jax.config.update("jax_default_device", cpu)
 
 # Funkcja do aproksymacji
 Fun = lambda x: 1000 * jnp.sin(x[0]) + jnp.cos(x[1])
+
 vmap_Fun = vmap(Fun, in_axes=0, out_axes=0)
 
 n_inputs = 2 # liczba wejść (misi być takie jak w Fun)
-n_hidden = [10, 20, 10] # liczba neuronów w warstwach ukrytych
+n_hidden = [10 for _ in range(10)] # liczba neuronów w warstwach ukrytych
 n_outputs = 1 # liczba wyjść (nie zmianiać, bo kod zakłada 1 wyjście)
 
 net_size = [n_inputs] + n_hidden + [n_outputs]  # rozmiary warstw sieci
@@ -74,10 +75,9 @@ def initialize_mlp(key):
 
     w = [None] * (m - 1)
     for i in range(m - 1):
-        limit = jnp.sqrt(6 / (net_size[i] + net_size[i + 1]))
+        std_dev = jnp.sqrt(2.0 / net_size[i])
         key, subkey = jrd.split(key)
-        w[i] = jrd.uniform(
-            subkey, (net_size[i + 1], net_size[i]), minval=-limit, maxval=limit)
+        w[i] = jrd.normal(subkey, (net_size[i + 1], net_size[i])) * std_dev
 
     params = {'w': w, 'b': b}
 
@@ -89,12 +89,11 @@ def initialize_mlp(key):
     return params, vel_params_old, key
 
 def mlp_forward(params, x):
-    v = x
     for i in range(m-2):
-        v = jnp.dot(params['w'][i], v) + params['b'][i]
-        v = jax.nn.tanh(v)
-    v = jnp.dot(params['w'][m-2], v) + params['b'][m-2]
-    return v
+        x = jnp.dot(params['w'][i], x) + params['b'][i]
+        x = jax.nn.tanh(x)
+    x = jnp.dot(params['w'][m-2], x) + params['b'][m-2]
+    return x
 
 jit_mlp_forward = jit(mlp_forward)
 vmap_mlp_forward = vmap(mlp_forward, in_axes=(None, 0), out_axes=0)
@@ -113,7 +112,11 @@ def batch_loss(params, x_batch, y_batch):
 jit_batch_loss = jit(batch_loss)
 grad_batch_loss = grad(batch_loss)
 
-def train_step(params, vel_params_old, x_batch, y_batch, learning_rate, momentum):
+def train_step(params, vel_params_old, learning_rate, momentum, key, batch_size):
+    key, subkey = jrd.split(key)
+    idxs = jrd.randint(subkey, (batch_size,), minval=0, maxval=n_train)
+    x_batch = X_train[idxs]
+    y_batch = Y_train[idxs]
 
     params_lookup = tree_map(lambda p, v_old: p + momentum * v_old, params, vel_params_old)
     nesterov_grads = grad_batch_loss(params_lookup, x_batch, y_batch)
@@ -126,50 +129,31 @@ def train_step(params, vel_params_old, x_batch, y_batch, learning_rate, momentum
         lambda p, v_new: p + v_new,
         params, vel_params_new)
     
-    return params_new, vel_params_new
+    return params_new, vel_params_new, key
 
-def get_batches(X, Y, batch_size, key):
-    n_samples = X.shape[0]
-    key, subkey = jrd.split(key)
-    permutation = jrd.permutation(subkey, n_samples)
-    X, Y = X[permutation], Y[permutation]
-    
-    num_of_batches = n_samples // batch_size
-    num_samples_to_use = num_of_batches * batch_size
-    
-    X_batches = X[:num_samples_to_use].reshape(num_of_batches, batch_size, -1)
-    Y_batches = Y[:num_samples_to_use].reshape(num_of_batches, batch_size, -1)
-    
-    return X_batches, Y_batches, num_of_batches, key
+jit_train_step = jit(train_step, static_argnames=('batch_size'))
 
-def one_epoch(params, vel_params_old, X_train, 
-            Y_train, batch_size, learning_rate, momentum, key):
-    
-    X_batches, Y_batches, num_of_batches, key = get_batches(
-        X_train, Y_train, batch_size, key)
-    
+def N_train_steps(params, vel_params_old, learning_rate, momentum, key, batch_size, n_steps):
     def body_fun(i, carry):
-        params, vel_params_old = carry
-        x_batch = X_batches[i]
-        y_batch = Y_batches[i]
-        params_new, vel_params = train_step(
-            params, vel_params_old, x_batch, y_batch, learning_rate, momentum)
-        
-        return (params_new, vel_params)
-    
-    params_new, vel_params = fori_loop(
-        0, num_of_batches, body_fun, (params, vel_params_old))
-    
-    return params_new, vel_params, key
+        params, vel_params_old, key = carry
+        params, vel_params_old, key = train_step(
+            params, vel_params_old, learning_rate, momentum, key, batch_size)
+        return (params, vel_params_old, key)
 
-jit_one_epoch = jit(one_epoch, static_argnames=('batch_size',))
+    params, vel_params_old, key = fori_loop(
+        0, n_steps, body_fun, (params, vel_params_old, key))
+    
+    return (params, vel_params_old, key)
+
+jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps'))
 
 
 
 # %% =================================================================
 # Uczenie
 
-max_epochs = 5000 # maksymalna liczba epok
+max_epochs = 100 # maksymalna liczba epok
+max_iter = 3000 # maksymalna liczba iteracji na epokę
 learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.9 # współczynnik momentum
 mb_size = 64 # rozmiar mini-batcha
@@ -179,44 +163,61 @@ params, vel_params_old, key = initialize_mlp(key)
 train_losses = np.zeros(max_epochs)
 val_losses = np.zeros(max_epochs)
 
+start = time.time()
+
 for epoch in range(max_epochs):
-    params, vel_params_old, key = jit_one_epoch(
-        params, vel_params_old, X_train, Y_train, mb_size, learning_rate, momentum, key)
+    params, vel_params_old, key = jit_N_train_steps(
+        params, vel_params_old, learning_rate, momentum, key, mb_size, max_iter)
+        
+    Y_train_pred = jit_vmap_mlp_forward(params, X_train)
+    Y_val_pred = jit_vmap_mlp_forward(params, X_val)
     
-    train_loss = jit_batch_loss(params, X_train, Y_train)
-    val_loss = jit_batch_loss(params, X_val, Y_val)
+    train_loss = jnp.mean((Y_train_pred - Y_train) ** 2)
+    val_loss = jnp.mean((Y_val_pred - Y_val) ** 2)
     
     train_losses[epoch] = train_loss
     val_losses[epoch] = val_loss
-    
-    if epoch % 50 == 0 or epoch == max_epochs - 1:
-        print(f"\r{epoch+1}/{max_epochs}: Train Loss = {train_loss:.12f}, Val Loss = {val_loss:.12f}", end='')
+
+    print(f"Epoch {epoch}/{max_epochs-1}: Train Loss = {train_loss:.6e}, Val Loss = {val_loss:.6e}")
+
+print(f"Train Loss = {train_loss:.6e}, Val Loss = {val_loss:.6e}")
+
+end = time.time()
+print(f"Training time: {end - start} seconds")
 
 fig1 = plt.figure()
-fig1.tight_layout()
 ax = fig1.add_subplot(111)
-
 ax.semilogy(train_losses, label='Train loss')
 ax.semilogy(val_losses, label='Val loss')
+ax.set_title('Training and Validation Loss')
+ax.set_xlabel('Epoch')
+ax.set_ylabel('Loss')
 ax.minorticks_on()
 ax.grid(True, which='major', linestyle='-')
 ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 ax.legend()
 
 fig2 = plt.figure()
-fig2.tight_layout()
-ax1 = fig2.add_subplot(211)
-ax2 = fig2.add_subplot(212)
+ax = fig2.add_subplot(111)
+ax.scatter(Y_train, jit_vmap_mlp_forward(params, X_train), s=4)
+ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
+ax.set_title('Train set')
+ax.set_xlabel('True values')
+ax.set_ylabel('Predicted values')
+ax.minorticks_on()
+ax.grid(True, which='major', linestyle='-')
+ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
-ax1.scatter(Y_train, jit_vmap_mlp_forward(params, X_train), s=0.5, alpha=0.5)
-ax1.minorticks_on()
-ax1.grid(True, which='major', linestyle='-')
-ax1.grid(True, which='minor', linestyle='--', alpha=0.5)
-
-ax2.scatter(Y_val, jit_vmap_mlp_forward(params, X_val), s=0.5, alpha=0.5)
-ax2.minorticks_on()
-ax2.grid(True, which='major', linestyle='-')
-ax2.grid(True, which='minor', linestyle='--', alpha=0.5)
+fig3 = plt.figure()
+ax = fig3.add_subplot(111)
+ax.scatter(Y_val, jit_vmap_mlp_forward(params, X_val), s=4)
+ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
+ax.set_title('Val set')
+ax.set_xlabel('True values')
+ax.set_ylabel('Predicted values')
+ax.minorticks_on()
+ax.grid(True, which='major', linestyle='-')
+ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 plt.show()
 
