@@ -18,19 +18,21 @@ cpu = jax.devices("cpu")[0]
 gpu = jax.devices("gpu")[0]
 jax.config.update("jax_default_device", cpu)
 
+# Opis co robi skrypt:
+
 
 
 # %% =================================================================
 # Przygotowanie danych
 
 # Funkcja do aproksymacji
-Fun = lambda x: 1000 * jnp.sin(x[0]) + jnp.cos(x[1])
+Fun = lambda x: 1000 * jnp.sin(x[0] * x[1]) + jnp.cos(x[1] + x[0])
 
 vmap_Fun = vmap(Fun, in_axes=0, out_axes=0)
 
 n_inputs = 2 # liczba wejść (misi być takie jak w Fun)
 n_hidden = [10 for _ in range(10)] # liczba neuronów w warstwach ukrytych
-n_outputs = 1 # liczba wyjść (nie zmianiać, bo kod zakłada 1 wyjście)
+n_outputs = 1 # liczba wyjść
 
 net_size = [n_inputs] + n_hidden + [n_outputs]  # rozmiary warstw sieci
 m = len(net_size)  # liczba warstw sieci
@@ -131,17 +133,15 @@ def train_step(params, vel_params_old, learning_rate, momentum, key, batch_size)
     
     return params_new, vel_params_new, key
 
-jit_train_step = jit(train_step, static_argnames=('batch_size'))
-
 def N_train_steps(params, vel_params_old, learning_rate, momentum, key, batch_size, n_steps):
-    def body_fun(i, carry):
+    def loop_body(i, carry):
         params, vel_params_old, key = carry
         params, vel_params_old, key = train_step(
             params, vel_params_old, learning_rate, momentum, key, batch_size)
         return (params, vel_params_old, key)
 
     params, vel_params_old, key = fori_loop(
-        0, n_steps, body_fun, (params, vel_params_old, key))
+        0, n_steps, loop_body, (params, vel_params_old, key))
     
     return (params, vel_params_old, key)
 
@@ -152,7 +152,7 @@ jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps')
 # %% =================================================================
 # Uczenie
 
-max_epochs = 100 # maksymalna liczba epok
+max_epochs = 200 # maksymalna liczba epok
 max_iter = 3000 # maksymalna liczba iteracji na epokę
 learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.9 # współczynnik momentum
@@ -168,12 +168,9 @@ start = time.time()
 for epoch in range(max_epochs):
     params, vel_params_old, key = jit_N_train_steps(
         params, vel_params_old, learning_rate, momentum, key, mb_size, max_iter)
-        
-    Y_train_pred = jit_vmap_mlp_forward(params, X_train)
-    Y_val_pred = jit_vmap_mlp_forward(params, X_val)
     
-    train_loss = jnp.mean((Y_train_pred - Y_train) ** 2)
-    val_loss = jnp.mean((Y_val_pred - Y_val) ** 2)
+    train_loss = batch_loss(params, X_train, Y_train)
+    val_loss = batch_loss(params, X_val, Y_val)
     
     train_losses[epoch] = train_loss
     val_losses[epoch] = val_loss
@@ -220,4 +217,10 @@ ax.grid(True, which='major', linestyle='-')
 ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 plt.show()
+
+
+# %% =================================================================
+# Zapisanie modelu
+
+
 
