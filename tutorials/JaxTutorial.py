@@ -28,12 +28,14 @@ from jax import device_put
 construct  |  jit  |  grad
 --------------------------
 if         |   x   |   v
-for        |   x   |   v
-while      |   x   |   v
+for        |   v*  |   v
+while      |   v*  |   v
 cond       |   v   |   v
 while_loop |   v   |  fwd
 fori_loop  |   v   |  fwd
 scan       |   v   |   v
+
+* = argument-value-independent loop condition - unrolls the loop
 
 JVP(x,v) = Df(x) @ v    - forward-mode automatic differentiation
 VJP(x,v) = v.T @ Df(x)  - reverse-mode automatic differentiation

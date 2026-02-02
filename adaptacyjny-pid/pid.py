@@ -1,4 +1,4 @@
-# ==========================================================
+# %% ==========================================================
 # Regulacja PID obiektu nieliniowego z małym opóźnieniem
 
 # Symulacja działa z krokiem h i wykorzystuje metodę RK4.
