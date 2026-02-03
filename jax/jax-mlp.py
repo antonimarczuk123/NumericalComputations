@@ -157,13 +157,13 @@ jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps')
 # %% =================================================================
 # Uczenie
 
-max_epochs = 200 # maksymalna liczba epok
+max_epochs = 2000 # maksymalna liczba epok
 max_iter = 3000 # maksymalna liczba iteracji na epokę
 learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.9 # współczynnik momentum
 mb_size = 64 # rozmiar mini-batcha
 
-params, vel_params_old, key = initialize_mlp(key)
+# params, vel_params_old, key = initialize_mlp(key)
 
 train_losses = np.zeros(max_epochs)
 val_losses = np.zeros(max_epochs)
