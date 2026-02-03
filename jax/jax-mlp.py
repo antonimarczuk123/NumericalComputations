@@ -19,7 +19,12 @@ gpu = jax.devices("gpu")[0]
 jax.config.update("jax_default_device", cpu)
 
 # Opis co robi skrypt:
-
+# Ten skrypt implementuje wielowarstwową sieć neuronową (MLP) do aproksymacji funkcji
+# za pomocą JAX. Dzięki wykorzystaniu JAX, skrypt korzysta z automatycznego różniczkowania
+# oraz kompilacji JIT. Ponadto automatyczny gradient pozwala na aproksymację funkcji wielowymiarowych.
+# Stosowana metoda optymalizacji to Nesterov Accelerated Stochastic Gradient Descent.
+# JAX operuje na funkcjach, stąd po przygotowaniu danych definiujemy funkcje, które później
+# są wykorzystywane w procesie uczenia sieci. Dla małej sieci szybciej działa na CPU.
 
 
 # %% =================================================================
@@ -217,10 +222,6 @@ ax.grid(True, which='major', linestyle='-')
 ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 plt.show()
-
-
-# %% =================================================================
-# Zapisanie modelu
 
 
 
