@@ -9,14 +9,14 @@ from jax import vmap
 from jax import jit
 from jax import grad
 from jax.lax import fori_loop
-from jax.tree_util import tree_map
+from jax.flatten_util import ravel_pytree # do spłaszczania i odtwarzania PyTree
 import matplotlib.pyplot as plt
 import numpy as np
 
 # Ustawienie urządzenia do obliczeń (CPU lub GPU)
 cpu = jax.devices("cpu")[0]
 gpu = jax.devices("gpu")[0]
-jax.config.update("jax_default_device", cpu)
+jax.config.update("jax_default_device", gpu)
 
 
 
@@ -35,8 +35,8 @@ n_outputs = 1 # liczba wyjść
 net_size = [n_inputs] + n_hidden + [n_outputs]  # rozmiary warstw sieci
 m = len(net_size)  # liczba warstw sieci
 
-n_train = 10000 # liczba próbek uczących
-n_val = 3000   # liczba próbek walidujących
+n_train = 3000 # liczba próbek uczących
+n_val = 1000   # liczba próbek walidujących
 
 # Inicjalizacja generatora liczb losowych
 seed = round(time.time_ns() % 1e6)
@@ -66,7 +66,7 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
 
 
 # %% =================================================================
-# Funkcje 
+# Funkcje i inicjalizacja sieci
 
 def initialize_mlp(key):
     b = [None] * (m - 1)
@@ -81,14 +81,17 @@ def initialize_mlp(key):
 
     params = {'w': w, 'b': b}
 
-    p_b_old = [jnp.zeros_like(bi) for bi in b]
-    p_w_old = [jnp.zeros_like(wi) for wi in w]
+    # Spłaszczanie parametrów do jednowymiarowego wektora.
+    # Funkcja unravel_fn pozwala na odtworzenie oryginalnej struktury PyTree.
+    params_flat, unravel_fn = ravel_pytree(params)
 
-    vel_params_old = {'w': p_w_old, 'b': p_b_old}
+    return params_flat, unravel_fn, key
 
-    return params, vel_params_old, key
+# Uwaga: Od razu inicjalizujemy parametry sieci, bo potrzebujemy funkcji unravel_fn!
+params, unravel_fn, key = initialize_mlp(key)
 
 def mlp_forward(params, x):
+    params = unravel_fn(params)
     for i in range(m-2):
         x = jnp.dot(params['w'][i], x) + params['b'][i]
         x = jax.nn.tanh(x)
@@ -110,40 +113,31 @@ def batch_loss(params, x_batch, y_batch):
 
 grad_batch_loss = grad(batch_loss)
 
-def train_step(params, vel_params_old, learning_rate, momentum, key, batch_size):
+def train_step(params, learning_rate, key, batch_size):
     key, subkey = jrd.split(key)
     idxs = jrd.randint(subkey, (batch_size,), minval=0, maxval=n_train)
     x_batch = X_train[idxs]
     y_batch = Y_train[idxs]
 
-    params_lookup = tree_map(lambda p, v_old: p + momentum * v_old, params, vel_params_old)
-    nesterov_grads = grad_batch_loss(params_lookup, x_batch, y_batch)
-
-    vel_params_new = tree_map(
-        lambda v_old, g: momentum * v_old - learning_rate * g,
-        vel_params_old, nesterov_grads)
+    g = grad_batch_loss(params, x_batch, y_batch)
+    params_new = params - learning_rate * g
     
-    params_new = tree_map(
-        lambda p, v_new: p + v_new,
-        params, vel_params_new)
-    
-    return params_new, vel_params_new, key
+    return params_new, key
 
-def N_train_steps(params, vel_params_old, learning_rate, momentum, key, 
-                batch_size, n_steps):
+def N_train_steps(params, learning_rate, key, batch_size, n_steps):
     def loop_body(i, carry):
-        params, vel_params_old, key = carry
-        params, vel_params_old, key = train_step(
-            params, vel_params_old, learning_rate, momentum, key, batch_size)
-        return (params, vel_params_old, key)
+        params, key = carry
+        params, key = train_step(
+            params, learning_rate, key, batch_size)
+        return (params, key)
 
-    params, vel_params_old, key = fori_loop(
-        0, n_steps, loop_body, (params, vel_params_old, key))
+    params, key = fori_loop(
+        0, n_steps, loop_body, (params, key))
     
     train_loss = batch_loss(params, X_train, Y_train)
     val_loss = batch_loss(params, X_val, Y_val)
 
-    return params, vel_params_old, key, train_loss, val_loss
+    return params, key, train_loss, val_loss
 
 jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps'))
 
@@ -153,12 +147,9 @@ jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps')
 # Uczenie
 
 max_epochs = 100 # maksymalna liczba epok
-max_iter = 3000 # maksymalna liczba iteracji na epokę
+max_iter = 1000 # maksymalna liczba iteracji na epokę
 learning_rate = 0.001 # współczynnik uczenia
-momentum = 0.9 # współczynnik momentum
-mb_size = 64 # rozmiar mini-batcha
-
-params, vel_params_old, key = initialize_mlp(key)
+mb_size = 3000 # rozmiar mini-batcha
 
 train_losses = np.zeros(max_epochs)
 val_losses = np.zeros(max_epochs)
@@ -166,8 +157,8 @@ val_losses = np.zeros(max_epochs)
 start = time.time()
 
 for epoch in range(max_epochs):
-    params, vel_params_old, key, train_loss, val_loss = jit_N_train_steps(
-        params, vel_params_old, learning_rate, momentum, key, mb_size, max_iter)
+    params, key, train_loss, val_loss = jit_N_train_steps(
+        params, learning_rate, key, mb_size, max_iter)
     
     train_losses[epoch] = train_loss
     val_losses[epoch] = val_loss
