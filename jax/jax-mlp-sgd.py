@@ -18,13 +18,6 @@ cpu = jax.devices("cpu")[0]
 gpu = jax.devices("gpu")[0]
 jax.config.update("jax_default_device", cpu)
 
-# Opis co robi skrypt:
-# Ten skrypt implementuje wielowarstwową sieć neuronową (MLP) do aproksymacji funkcji
-# za pomocą JAX. Dzięki wykorzystaniu JAX, skrypt korzysta z automatycznego różniczkowania
-# oraz kompilacji JIT. Ponadto automatyczny gradient pozwala na aproksymację funkcji wielowymiarowych.
-# Stosowana metoda optymalizacji to Nesterov Accelerated Stochastic Gradient Descent.
-# JAX operuje na funkcjach, stąd po przygotowaniu danych definiujemy funkcje, które później
-# są wykorzystywane w procesie uczenia sieci. Dla małej sieci szybciej działa na CPU.
 
 
 # %% =================================================================
@@ -102,7 +95,6 @@ def mlp_forward(params, x):
     x = jnp.dot(params['w'][m-2], x) + params['b'][m-2]
     return x
 
-jit_mlp_forward = jit(mlp_forward)
 vmap_mlp_forward = vmap(mlp_forward, in_axes=(None, 0), out_axes=0)
 jit_vmap_mlp_forward = jit(vmap_mlp_forward)
 
@@ -116,7 +108,6 @@ def batch_loss(params, x_batch, y_batch):
     losses = vmap_single_loss(params, x_batch, y_batch)
     return jnp.mean(losses)
 
-jit_batch_loss = jit(batch_loss)
 grad_batch_loss = grad(batch_loss)
 
 def train_step(params, vel_params_old, learning_rate, momentum, key, batch_size):
@@ -138,7 +129,8 @@ def train_step(params, vel_params_old, learning_rate, momentum, key, batch_size)
     
     return params_new, vel_params_new, key
 
-def N_train_steps(params, vel_params_old, learning_rate, momentum, key, batch_size, n_steps):
+def N_train_steps(params, vel_params_old, learning_rate, momentum, key, 
+                batch_size, n_steps):
     def loop_body(i, carry):
         params, vel_params_old, key = carry
         params, vel_params_old, key = train_step(
@@ -148,7 +140,10 @@ def N_train_steps(params, vel_params_old, learning_rate, momentum, key, batch_si
     params, vel_params_old, key = fori_loop(
         0, n_steps, loop_body, (params, vel_params_old, key))
     
-    return (params, vel_params_old, key)
+    train_loss = batch_loss(params, X_train, Y_train)
+    val_loss = batch_loss(params, X_val, Y_val)
+
+    return params, vel_params_old, key, train_loss, val_loss
 
 jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps'))
 
@@ -157,13 +152,13 @@ jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps')
 # %% =================================================================
 # Uczenie
 
-max_epochs = 2000 # maksymalna liczba epok
+max_epochs = 100 # maksymalna liczba epok
 max_iter = 3000 # maksymalna liczba iteracji na epokę
 learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.9 # współczynnik momentum
 mb_size = 64 # rozmiar mini-batcha
 
-# params, vel_params_old, key = initialize_mlp(key)
+params, vel_params_old, key = initialize_mlp(key)
 
 train_losses = np.zeros(max_epochs)
 val_losses = np.zeros(max_epochs)
@@ -171,11 +166,8 @@ val_losses = np.zeros(max_epochs)
 start = time.time()
 
 for epoch in range(max_epochs):
-    params, vel_params_old, key = jit_N_train_steps(
+    params, vel_params_old, key, train_loss, val_loss = jit_N_train_steps(
         params, vel_params_old, learning_rate, momentum, key, mb_size, max_iter)
-    
-    train_loss = batch_loss(params, X_train, Y_train)
-    val_loss = batch_loss(params, X_val, Y_val)
     
     train_losses[epoch] = train_loss
     val_losses[epoch] = val_loss
