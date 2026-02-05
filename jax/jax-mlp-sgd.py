@@ -66,37 +66,35 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
 
 
 # %% =================================================================
-# Funkcje 
+# Inicjalizacja sieci i funkcji 
 
 def initialize_mlp(key):
-    b = [None] * (m - 1)
-    for i in range(m - 1):
-        b[i] = jnp.zeros((net_size[i + 1],))
-
-    w = [None] * (m - 1)
+    params = []
     for i in range(m - 1):
         std_dev = jnp.sqrt(2.0 / net_size[i])
         key, subkey = jrd.split(key)
-        w[i] = jrd.normal(subkey, (net_size[i + 1], net_size[i])) * std_dev
+        params.append({
+            'w': jrd.normal(subkey, (net_size[i + 1], net_size[i])) * std_dev,
+            'b': jnp.zeros((net_size[i + 1],))
+        })
 
-    params = {'w': w, 'b': b}
-
-    p_b_old = [jnp.zeros_like(bi) for bi in b]
-    p_w_old = [jnp.zeros_like(wi) for wi in w]
-
-    vel_params_old = {'w': p_w_old, 'b': p_b_old}
+    vel_params_old = tree_map(
+        lambda p: jnp.zeros_like(p),
+        params
+    )
 
     return params, vel_params_old, key
 
+params, vel_params_old, key = initialize_mlp(key) # Inicjalizacja sieci
+
 def mlp_forward(params, x):
     for i in range(m-2):
-        x = jnp.dot(params['w'][i], x) + params['b'][i]
+        x = jnp.dot(params[i]['w'], x) + params[i]['b']
         x = jax.nn.tanh(x)
-    x = jnp.dot(params['w'][m-2], x) + params['b'][m-2]
+    x = jnp.dot(params[m-2]['w'], x) + params[m-2]['b']
     return x
 
 vmap_mlp_forward = vmap(mlp_forward, in_axes=(None, 0), out_axes=0)
-jit_vmap_mlp_forward = jit(vmap_mlp_forward)
 
 def single_loss(params, x, y):
     y_pred = mlp_forward(params, x)
@@ -158,8 +156,6 @@ learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.9 # współczynnik momentum
 mb_size = 64 # rozmiar mini-batcha
 
-params, vel_params_old, key = initialize_mlp(key)
-
 train_losses = np.zeros(max_epochs)
 val_losses = np.zeros(max_epochs)
 
@@ -193,7 +189,7 @@ ax.legend()
 
 fig2 = plt.figure()
 ax = fig2.add_subplot(111)
-ax.scatter(Y_train, jit_vmap_mlp_forward(params, X_train), s=4)
+ax.scatter(Y_train, vmap_mlp_forward(params, X_train), s=4)
 ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
 ax.set_title('Train set')
 ax.set_xlabel('True values')
@@ -204,7 +200,7 @@ ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 fig3 = plt.figure()
 ax = fig3.add_subplot(111)
-ax.scatter(Y_val, jit_vmap_mlp_forward(params, X_val), s=4)
+ax.scatter(Y_val, vmap_mlp_forward(params, X_val), s=4)
 ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
 ax.set_title('Val set')
 ax.set_xlabel('True values')
