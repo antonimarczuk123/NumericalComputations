@@ -24,12 +24,12 @@ jax.config.update("jax_default_device", cpu)
 # Przygotowanie danych
 
 # Funkcja do aproksymacji
-Fun = lambda x: 1000 * jnp.sin(x[0] * x[1]) + jnp.cos(x[1] + x[0])
+Fun = lambda x: 1000 * jnp.sin(x[0] - x[1]) + jnp.cos(x[1] + x[0])
 
 vmap_Fun = vmap(Fun, in_axes=0, out_axes=0)
 
 n_inputs = 2 # liczba wejść (misi być takie jak w Fun)
-n_hidden = [10 for _ in range(10)] # liczba neuronów w warstwach ukrytych
+n_hidden = [30 for _ in range(4)] # liczba neuronów w warstwach ukrytych
 n_outputs = 1 # liczba wyjść
 
 net_size = [n_inputs] + n_hidden + [n_outputs]  # rozmiary warstw sieci
@@ -53,17 +53,15 @@ Y_train = vmap_Fun(X_train).reshape(n_train, n_outputs)
 Y_min = Y_train.min() # minimalna wartość Y w zbiorze uczącym
 Y_max = Y_train.max() # maksymalna wartość Y w zbiorze uczącym
 
-X_train = (X_train - X_min) / (X_max - X_min)  # Przeskalowanie do [0, 1]
-Y_train = (Y_train - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
+X_train = (X_train - X_min) / (X_max - X_min) * 2 - 1  # Przeskalowanie do [-1, 1]
+Y_train = (Y_train - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 
 key, subkey = jrd.split(key)
 X_val = jrd.uniform(subkey, (n_val, n_inputs), minval=X_min, maxval=X_max)
 Y_val = vmap_Fun(X_val).reshape(n_val, n_outputs)
 
-X_val = (X_val - X_min) / (X_max - X_min)  # Przeskalowanie do [0, 1]
-Y_val = (Y_val - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
-
-
+X_val = (X_val - X_min) / (X_max - X_min) * 2 - 1  # Przeskalowanie do [-1, 1]
+Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 
 # %% =================================================================
 # Inicjalizacja sieci i funkcji 
@@ -150,8 +148,8 @@ jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps')
 # %% =================================================================
 # Uczenie
 
-max_epochs = 100 # maksymalna liczba epok
-max_iter = 3000 # maksymalna liczba iteracji na epokę
+max_epochs = 500 # maksymalna liczba epok
+max_iter = 1000 # maksymalna liczba iteracji na epokę
 learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.9 # współczynnik momentum
 mb_size = 64 # rozmiar mini-batcha
