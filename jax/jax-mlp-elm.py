@@ -23,12 +23,12 @@ jax.config.update("jax_enable_x64", True)
 # Przygotowanie danych
 
 # Funkcja do aproksymacji
-Fun = lambda x: 1000 * jnp.sin(x[0]) + jnp.cos(x[1])
+Fun = lambda x: 1000 * jnp.sin(x[0] + x[1]) + jnp.cos(x[1])
 
 vmap_Fun = vmap(Fun, in_axes=0, out_axes=0)
 
 n_inputs = 2 # liczba wejść (misi być takie jak w Fun)
-n_hidden = 200 # liczba neuronów w warstwie ukrytej
+n_hidden = 500 # liczba neuronów w warstwie ukrytej
 n_outputs = 1 # liczba wyjść (zakładam jedno wyjście)
 
 n_train = 5000 # liczba próbek uczących
@@ -120,10 +120,10 @@ jit_train = jit(train)
 # %% =================================================================
 # Uczenie
 
-max_iter = 50
-w0_std_dev = 10.0
-b0_std_dev = 10.0
-lambda_reg = 1e-6
+max_iter = 30
+w0_std_dev = 2.5
+b0_std_dev = 3.5
+lambda_reg = 1e-8
 
 w0 = None
 b0 = None
