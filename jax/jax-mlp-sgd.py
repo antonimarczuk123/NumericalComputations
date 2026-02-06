@@ -10,6 +10,7 @@ from jax import jit
 from jax import grad
 from jax.lax import fori_loop
 from jax.tree_util import tree_map
+from jax.tree_util import tree_reduce
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -24,12 +25,12 @@ jax.config.update("jax_default_device", cpu)
 # Przygotowanie danych
 
 # Funkcja do aproksymacji
-Fun = lambda x: 1000 * jnp.sin(x[0] - x[1]) + jnp.cos(x[1] + x[0])
+Fun = lambda x: 1000 * jnp.sin(x[0] * x[1]) + jnp.cos(x[1] + x[0])
 
 vmap_Fun = vmap(Fun, in_axes=0, out_axes=0)
 
 n_inputs = 2 # liczba wejść (misi być takie jak w Fun)
-n_hidden = [30 for _ in range(4)] # liczba neuronów w warstwach ukrytych
+n_hidden = [100 for _ in range(5)] # liczba neuronów w warstwach ukrytych
 n_outputs = 1 # liczba wyjść
 
 net_size = [n_inputs] + n_hidden + [n_outputs]  # rozmiary warstw sieci
@@ -106,14 +107,20 @@ def batch_loss(params, x_batch, y_batch):
 
 grad_batch_loss = grad(batch_loss)
 
+def norm_grad_batch_loss(params, x_batch, y_batch):
+    grad = grad_batch_loss(params, x_batch, y_batch)
+    norm = tree_reduce(lambda acc, g: acc + jnp.sum(g ** 2), grad, initializer=0.0)
+    norm = jnp.sqrt(norm)
+    return norm
+
 def train_step(params, vel_params_old, learning_rate, momentum, key, batch_size):
     key, subkey = jrd.split(key)
     idxs = jrd.randint(subkey, (batch_size,), minval=0, maxval=n_train)
     x_batch = X_train[idxs]
     y_batch = Y_train[idxs]
 
-    params_lookup = tree_map(lambda p, v_old: p + momentum * v_old, params, vel_params_old)
-    nesterov_grads = grad_batch_loss(params_lookup, x_batch, y_batch)
+    params_nesterov_lookup = tree_map(lambda p, v_old: p + momentum * v_old, params, vel_params_old)
+    nesterov_grads = grad_batch_loss(params_nesterov_lookup, x_batch, y_batch)
 
     vel_params_new = tree_map(
         lambda v_old, g: momentum * v_old - learning_rate * g,
@@ -138,8 +145,9 @@ def N_train_steps(params, vel_params_old, learning_rate, momentum, key,
     
     train_loss = batch_loss(params, X_train, Y_train)
     val_loss = batch_loss(params, X_val, Y_val)
+    grad_norm = norm_grad_batch_loss(params, X_train, Y_train)
 
-    return params, vel_params_old, key, train_loss, val_loss
+    return params, vel_params_old, key, train_loss, val_loss, grad_norm
 
 jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps'))
 
@@ -148,25 +156,27 @@ jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps')
 # %% =================================================================
 # Uczenie
 
-max_epochs = 500 # maksymalna liczba epok
+max_epochs = 200 # maksymalna liczba epok
 max_iter = 1000 # maksymalna liczba iteracji na epokę
-learning_rate = 0.001 # współczynnik uczenia
-momentum = 0.9 # współczynnik momentum
+learning_rate = 0.002 # współczynnik uczenia
+momentum = 0.90 # współczynnik momentum
 mb_size = 64 # rozmiar mini-batcha
 
 train_losses = np.zeros(max_epochs)
 val_losses = np.zeros(max_epochs)
+norms_of_grad = np.zeros(max_epochs)
 
 start = time.time()
 
 for epoch in range(max_epochs):
-    params, vel_params_old, key, train_loss, val_loss = jit_N_train_steps(
+    params, vel_params_old, key, train_loss, val_loss, grad_norm = jit_N_train_steps(
         params, vel_params_old, learning_rate, momentum, key, mb_size, max_iter)
     
     train_losses[epoch] = train_loss
     val_losses[epoch] = val_loss
+    norms_of_grad[epoch] = grad_norm
 
-    print(f"Epoch {epoch}/{max_epochs-1}: Train Loss = {train_loss:.6e}, Val Loss = {val_loss:.6e}")
+    print(f"Epoch {epoch}/{max_epochs-1}: Train Loss = {train_loss:.6e}, Val Loss = {val_loss:.6e}, Grad Norm = {grad_norm:.6e}")
 
 print(f"Train Loss = {train_loss:.6e}, Val Loss = {val_loss:.6e}")
 
@@ -177,8 +187,6 @@ fig1 = plt.figure()
 ax = fig1.add_subplot(111)
 ax.semilogy(train_losses, label='Train loss')
 ax.semilogy(val_losses, label='Val loss')
-ax.set_title('Training and Validation Loss')
-ax.set_xlabel('Epoch')
 ax.set_ylabel('Loss')
 ax.minorticks_on()
 ax.grid(True, which='major', linestyle='-')
@@ -187,6 +195,16 @@ ax.legend()
 
 fig2 = plt.figure()
 ax = fig2.add_subplot(111)
+ax.semilogy(norms_of_grad, label='Grad norm')
+ax.legend()
+ax.set_xlabel('Epoch')
+ax.set_ylabel('Norm')
+ax.minorticks_on()
+ax.grid(True, which='major', linestyle='-')
+ax.grid(True, which='minor', linestyle='--', alpha=0.5)
+
+fig3 = plt.figure()
+ax = fig3.add_subplot(111)
 ax.scatter(Y_train, vmap_mlp_forward(params, X_train), s=4)
 ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
 ax.set_title('Train set')
@@ -196,8 +214,8 @@ ax.minorticks_on()
 ax.grid(True, which='major', linestyle='-')
 ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
-fig3 = plt.figure()
-ax = fig3.add_subplot(111)
+fig4 = plt.figure()
+ax = fig4.add_subplot(111)
 ax.scatter(Y_val, vmap_mlp_forward(params, X_val), s=4)
 ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
 ax.set_title('Val set')
