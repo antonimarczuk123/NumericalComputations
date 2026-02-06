@@ -30,7 +30,7 @@ Fun = lambda x: 1000 * jnp.sin(x[0] * x[1]) + jnp.cos(x[1] + x[0])
 vmap_Fun = vmap(Fun, in_axes=0, out_axes=0)
 
 n_inputs = 2 # liczba wejść (misi być takie jak w Fun)
-n_hidden = [100 for _ in range(5)] # liczba neuronów w warstwach ukrytych
+n_hidden = [120 for _ in range(5)] # liczba neuronów w warstwach ukrytych
 n_outputs = 1 # liczba wyjść
 
 net_size = [n_inputs] + n_hidden + [n_outputs]  # rozmiary warstw sieci
@@ -145,9 +145,8 @@ def N_train_steps(params, vel_params_old, learning_rate, momentum, key,
     
     train_loss = batch_loss(params, X_train, Y_train)
     val_loss = batch_loss(params, X_val, Y_val)
-    grad_norm = norm_grad_batch_loss(params, X_train, Y_train)
 
-    return params, vel_params_old, key, train_loss, val_loss, grad_norm
+    return params, vel_params_old, key, train_loss, val_loss
 
 jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps'))
 
@@ -164,19 +163,17 @@ mb_size = 64 # rozmiar mini-batcha
 
 train_losses = np.zeros(max_epochs)
 val_losses = np.zeros(max_epochs)
-norms_of_grad = np.zeros(max_epochs)
 
 start = time.time()
 
 for epoch in range(max_epochs):
-    params, vel_params_old, key, train_loss, val_loss, grad_norm = jit_N_train_steps(
+    params, vel_params_old, key, train_loss, val_loss = jit_N_train_steps(
         params, vel_params_old, learning_rate, momentum, key, mb_size, max_iter)
     
     train_losses[epoch] = train_loss
     val_losses[epoch] = val_loss
-    norms_of_grad[epoch] = grad_norm
 
-    print(f"Epoch {epoch}/{max_epochs-1}: Train Loss = {train_loss:.6e}, Val Loss = {val_loss:.6e}, Grad Norm = {grad_norm:.6e}")
+    print(f"Epoch {epoch}/{max_epochs-1}: Train Loss = {train_loss:.6e}, Val Loss = {val_loss:.6e}")
 
 print(f"Train Loss = {train_loss:.6e}, Val Loss = {val_loss:.6e}")
 
@@ -192,16 +189,6 @@ ax.minorticks_on()
 ax.grid(True, which='major', linestyle='-')
 ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 ax.legend()
-
-fig2 = plt.figure()
-ax = fig2.add_subplot(111)
-ax.semilogy(norms_of_grad, label='Grad norm')
-ax.legend()
-ax.set_xlabel('Epoch')
-ax.set_ylabel('Norm')
-ax.minorticks_on()
-ax.grid(True, which='major', linestyle='-')
-ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 fig3 = plt.figure()
 ax = fig3.add_subplot(111)
