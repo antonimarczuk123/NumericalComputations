@@ -30,7 +30,7 @@ Fun = lambda x: 1000 * jnp.sin(x[0] * x[1]) + jnp.cos(x[1] + x[0])
 vmap_Fun = vmap(Fun, in_axes=0, out_axes=0)
 
 n_inputs = 2 # liczba wejść (misi być takie jak w Fun)
-n_hidden = [100 for _ in range(5)] # liczba neuronów w warstwach ukrytych
+n_hidden = [120 for _ in range(5)] # liczba neuronów w warstwach ukrytych
 n_outputs = 1 # liczba wyjść
 
 net_size = [n_inputs] + n_hidden + [n_outputs]  # rozmiary warstw sieci
@@ -89,7 +89,7 @@ params, vel_params_old, key = initialize_mlp(key) # Inicjalizacja sieci
 def mlp_forward(params, x):
     for i in range(m-2):
         x = jnp.dot(params[i]['w'], x) + params[i]['b']
-        x = jax.nn.tanh(x)
+        x = jax.nn.relu(x)
     x = jnp.dot(params[m-2]['w'], x) + params[m-2]['b']
     return x
 
@@ -187,6 +187,7 @@ fig1 = plt.figure()
 ax = fig1.add_subplot(111)
 ax.semilogy(train_losses, label='Train loss')
 ax.semilogy(val_losses, label='Val loss')
+ax.set_xlabel('Epoch')
 ax.set_ylabel('Loss')
 ax.minorticks_on()
 ax.grid(True, which='major', linestyle='-')
