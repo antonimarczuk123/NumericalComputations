@@ -113,6 +113,7 @@ def train(w0_std_dev, b0_std_dev, lambda_reg, key):
     MSE_norm_val = MSE_val / varY_val
 
     return w0, b0, w1, b1, MSE_norm_train, MSE_norm_val, key
+
 jit_train = jit(train)
 
 
