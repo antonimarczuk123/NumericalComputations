@@ -70,7 +70,7 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 def initialize_mlp(key):
     params = []
     for i in range(m - 1):
-        std_dev = jnp.sqrt(2.0 / net_size[i]) # inicjalizacja He
+        std_dev = jnp.sqrt(2.0 / net_size[i])
         key, subkey = jrd.split(key)
         params.append({
             'w': jrd.normal(subkey, (net_size[i + 1], net_size[i])) * std_dev,
@@ -94,6 +94,7 @@ def mlp_forward(params, x):
     return x
 
 vmap_mlp_forward = vmap(mlp_forward, in_axes=(None, 0), out_axes=0)
+jit_vmap_mlp_forward = jit(vmap_mlp_forward)
 
 def single_loss(params, x, y):
     y_pred = mlp_forward(params, x)
@@ -206,7 +207,7 @@ ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 fig3 = plt.figure()
 ax = fig3.add_subplot(111)
-ax.scatter(Y_train, vmap_mlp_forward(params, X_train), s=4)
+ax.scatter(Y_train, jit_vmap_mlp_forward(params, X_train), s=4)
 ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
 ax.set_title('Train set')
 ax.set_xlabel('True values')
@@ -217,7 +218,7 @@ ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 fig4 = plt.figure()
 ax = fig4.add_subplot(111)
-ax.scatter(Y_val, vmap_mlp_forward(params, X_val), s=4)
+ax.scatter(Y_val, jit_vmap_mlp_forward(params, X_val), s=4)
 ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
 ax.set_title('Val set')
 ax.set_xlabel('True values')
