@@ -19,6 +19,8 @@ cpu = jax.devices("cpu")[0]
 gpu = jax.devices("gpu")[0]
 jax.config.update("jax_default_device", cpu)
 
+# Włączenie/wyłączenie float64
+jax.config.update("jax_enable_x64", False)
 
 
 # %% =================================================================
@@ -70,7 +72,7 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 def initialize_mlp(key):
     params = []
     for i in range(m - 1):
-        std_dev = jnp.sqrt(2.0 / net_size[i])
+        std_dev = jnp.sqrt(1.8 / net_size[i])
         key, subkey = jrd.split(key)
         params.append({
             'w': jrd.normal(subkey, (net_size[i + 1], net_size[i])) * std_dev,
@@ -89,7 +91,7 @@ params, vel_params_old, key = initialize_mlp(key) # Inicjalizacja sieci
 def mlp_forward(params, x):
     for i in range(m-2):
         x = jnp.dot(params[i]['w'], x) + params[i]['b']
-        x = jax.nn.relu(x)
+        x = jax.nn.gelu(x)
     x = jnp.dot(params[m-2]['w'], x) + params[m-2]['b']
     return x
 
