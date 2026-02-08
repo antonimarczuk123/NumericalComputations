@@ -18,7 +18,10 @@ eq3 = sympy.Eq(Vout, -A * Vs)
 
 solution = sympy.solve((eq1, eq2, eq3), (Vout, Vs, I))
 
-print(sympy.pretty(solution))
+for var, expr in solution.items():
+    print(f"{var} = \n")
+    print(sympy.pretty(expr))
+    print()
 
 
 # %% ===========================================================
@@ -42,7 +45,11 @@ b = sympy.Matrix([Vin, 0, 0])
 x = M.solve(b)
 
 solution = {Vs: x[0], I: x[1], Vout: x[2]}
-print(sympy.pretty(solution))
+
+for var, expr in solution.items():
+    print(f"{var} = \n")
+    print(sympy.pretty(expr))
+    print()
 
 
 # %% ===========================================================
@@ -63,12 +70,14 @@ x = M.solve(b)
 x = [sympy.simplify(expr) for expr in x]
 
 solution = {I1: x[0], I2: x[1], V1: x[2], V2: x[3]}
+
 for var, expr in solution.items():
-    print(f"{var} = ")
+    print(f"{var} = \n")
     print(sympy.pretty(expr))
     print()
 
 I = solution[I1] + solution[I2]
-print("I = ")
+print("I = I1 + I2 = \n")
 print(sympy.pretty(I))
+print()
 
