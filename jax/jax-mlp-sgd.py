@@ -72,7 +72,7 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 def initialize_mlp(key):
     params = []
     for i in range(m - 1):
-        std_dev = jnp.sqrt(1.8 / net_size[i])
+        std_dev = jnp.sqrt(2.0 / net_size[i])
         key, subkey = jrd.split(key)
         params.append({
             'w': jrd.normal(subkey, (net_size[i + 1], net_size[i])) * std_dev,
