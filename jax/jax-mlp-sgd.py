@@ -159,7 +159,7 @@ jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps')
 # %% =================================================================
 # Uczenie
 
-max_epochs = 200 # maksymalna liczba epok
+max_epochs = 300 # maksymalna liczba epok
 max_iter = 1000 # maksymalna liczba iteracji na epokę
 learning_rate = 0.002 # współczynnik uczenia
 momentum = 0.90 # współczynnik momentum
