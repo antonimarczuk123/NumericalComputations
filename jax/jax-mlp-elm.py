@@ -49,15 +49,15 @@ Y_train = vmap_Fun(X_train).reshape(n_train, n_outputs)
 Y_min = Y_train.min() # minimalna wartość Y w zbiorze uczącym
 Y_max = Y_train.max() # maksymalna wartość Y w zbiorze uczącym
 
-X_train = (X_train - X_min) / (X_max - X_min)  # Przeskalowanie do [0, 1]
-Y_train = (Y_train - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
+X_train = (X_train - X_min) / (X_max - X_min) * 2 - 1  # Przeskalowanie do [-1, 1]
+Y_train = (Y_train - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 
 key, subkey = jrd.split(key)
 X_val = jrd.uniform(subkey, (n_val, n_inputs), minval=X_min, maxval=X_max)
 Y_val = vmap_Fun(X_val).reshape(n_val, n_outputs)
 
-X_val = (X_val - X_min) / (X_max - X_min)  # Przeskalowanie do [0, 1]
-Y_val = (Y_val - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
+X_val = (X_val - X_min) / (X_max - X_min) * 2 - 1  # Przeskalowanie do [-1, 1]
+Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 
 varY_train = jnp.var(Y_train)
 varY_val = jnp.var(Y_val)
@@ -123,7 +123,7 @@ jit_train = jit(train)
 
 max_iter = 30
 w0_std_dev = 2.5
-b0_std_dev = 3.5
+b0_std_dev = 3.0
 lambda_reg = 1e-8
 
 w0 = None
