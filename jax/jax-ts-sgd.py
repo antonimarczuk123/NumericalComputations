@@ -27,7 +27,7 @@ jax.config.update("jax_enable_x64", False)
 # Przygotowanie danych
 
 # Funkcja do aproksymacji
-Fun = lambda x: 1000 * jnp.sin(x[0] - x[1]) + jnp.cos(x[1] + x[0])
+Fun = lambda x: 100 * (jnp.sin(x[0] + x[1]) + jnp.cos(x[1]))
 
 vmap_Fun = vmap(Fun, in_axes=0, out_axes=0)
 
@@ -65,20 +65,15 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 # %% =================================================================
 # Inicjalizacja modelu TS i funkcji 
 
-# Zmienną x0 rozmywam na trzy zbiory: A1, A2, A3.
-# Zmienną x1 rozmywam na trzy zbiory: B1, B2, B3.
+# Zmienną x0 rozmywam na zbiory: A1, A2, A3, ...
+# Zmienną x1 rozmywam na zbiory: B1, B2, B3, ...
 # Zbiory są gaussowskie z parametrami (mean, std).
 
 # Reguły TS:
 # R0: IF x0 is A1 AND x1 is B1 THEN y = a0 * x0 + b0 * x1 + c0
-# R1: IF x0 is A2 AND x1 is B2 THEN y = a1 * x0 + b1 * x1 + c1
-# R2: IF x0 is A3 AND x1 is B3 THEN y = a2 * x0 + b2 * x1 + c2
-# R3: IF x0 is A1 AND x1 is B2 THEN y = a3 * x0 + b3 * x1 + c3
-# R4: IF x0 is A1 AND x1 is B3 THEN y = a4 * x0 + b4 * x1 + c4
-# R5: IF x0 is A2 AND x1 is B1 THEN y = a5 * x0 + b5 * x1 + c5
-# R6: IF x0 is A2 AND x1 is B3 THEN y = a6 * x0 + b6 * x1 + c6
-# R7: IF x0 is A3 AND x1 is B1 THEN y = a7 * x0 + b7 * x1 + c7
-# R8: IF x0 is A3 AND x1 is B3 THEN y = a8 * x0 + b8 * x1 + c8
+# R1: IF x0 is A1 AND x1 is B2 THEN y = a1 * x0 + b1 * x1 + c1
+# R2: IF x0 is A1 AND x1 is B3 THEN y = a2 * x0 + b2 * x1 + c2
+# itd.
 
 def initialize_ts(key):
     params = [] # wagi w poszczególnych funkcjach oraz parametry zbiorów rozmytych
