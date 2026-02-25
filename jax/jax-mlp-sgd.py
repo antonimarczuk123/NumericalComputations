@@ -27,16 +27,12 @@ jax.config.update("jax_enable_x64", False)
 # Przygotowanie danych
 
 # Funkcja do aproksymacji
-Fun = lambda x: 1000 * jnp.sin(x[0] * x[1]) + jnp.cos(x[1] + x[0])
+Fun = lambda x: 100 * (jnp.sin(x[0] * x[1]) + jnp.cos(x[1] + x[0]))
 
 vmap_Fun = vmap(Fun, in_axes=0, out_axes=0)
 
 n_inputs = 2 # liczba wejść (misi być takie jak w Fun)
-n_hidden = [120 for _ in range(5)] # liczba neuronów w warstwach ukrytych
 n_outputs = 1 # liczba wyjść
-
-net_size = [n_inputs] + n_hidden + [n_outputs]  # rozmiary warstw sieci
-m = len(net_size)  # liczba warstw sieci
 
 n_train = 10000 # liczba próbek uczących
 n_val = 3000   # liczba próbek walidujących
@@ -69,6 +65,11 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 # %% =================================================================
 # Inicjalizacja sieci i funkcji 
 
+n_hidden = [110 for _ in range(10)] # liczba neuronów w warstwach ukrytych
+
+net_size = [n_inputs] + n_hidden + [n_outputs]  # rozmiary warstw sieci
+m = len(net_size)  # liczba warstw sieci
+
 def initialize_mlp(key):
     params = []
     for i in range(m - 1):
@@ -91,7 +92,7 @@ params, vel_params_old, key = initialize_mlp(key) # Inicjalizacja sieci
 def mlp_forward(params, x):
     for i in range(m-2):
         x = jnp.dot(params[i]['w'], x) + params[i]['b']
-        x = jax.nn.gelu(x)
+        x = jax.nn.relu(x)
     x = jnp.dot(params[m-2]['w'], x) + params[m-2]['b']
     return x
 
@@ -161,7 +162,7 @@ jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps')
 
 max_epochs = 300 # maksymalna liczba epok
 max_iter = 1000 # maksymalna liczba iteracji na epokę
-learning_rate = 0.002 # współczynnik uczenia
+learning_rate = 0.001 # współczynnik uczenia
 momentum = 0.90 # współczynnik momentum
 mb_size = 64 # rozmiar mini-batcha
 
