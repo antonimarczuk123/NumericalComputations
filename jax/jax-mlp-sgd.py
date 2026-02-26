@@ -65,7 +65,7 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 # %% =================================================================
 # Inicjalizacja sieci i funkcji 
 
-n_hidden = [110 for _ in range(10)] # liczba neuronów w warstwach ukrytych
+n_hidden = [50 for _ in range(10)] # liczba neuronów w warstwach ukrytych
 
 net_size = [n_inputs] + n_hidden + [n_outputs]  # rozmiary warstw sieci
 m = len(net_size)  # liczba warstw sieci
@@ -92,7 +92,7 @@ params, vel_params_old, key = initialize_mlp(key) # Inicjalizacja sieci
 def mlp_forward(params, x):
     for i in range(m-2):
         x = jnp.dot(params[i]['w'], x) + params[i]['b']
-        x = jax.nn.relu(x)
+        x = jax.nn.gelu(x)
     x = jnp.dot(params[m-2]['w'], x) + params[m-2]['b']
     return x
 
