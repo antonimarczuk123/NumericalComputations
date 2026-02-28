@@ -1,8 +1,7 @@
 # %% __________________________________________________________________
-# MLP z 1 warstwą ukrytą.
+# MLP z czterema warstwami ukrytymi neuronów.
 # Uczenie metodą SGD + Nesterov momentum.
-# Na koniec douczenie sieci metodą ELM.
-# Funckje aktywacji: tanh dla warstw ukrytych, liniowa dla wyjściowej.
+# Funkcje aktywacji: tanh dla warstw ukrytych, liniowa dla wyjściowej.
 # Autor: Antoni Marczuk
 
 import numpy as np
@@ -17,7 +16,7 @@ import matplotlib.pyplot as plt
 Fun = lambda x: 1000 * np.sin(x[0,:]) * np.cos(x[1,:]) / np.exp(0.01 * (x[0,:] + x[1,:]))
 
 n_inputs = 2 # liczba wejść
-n_hidden = 100 # liczba neuronów ukrytych
+n_hidden = [50, 50, 50, 50] # liczba neuronów w warstwach ukrytych
 n_outputs = 1 # liczba wyjść
 
 n_train = 10000 # liczba próbek uczących
@@ -48,11 +47,20 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min)  # Przeskalowanie do [0, 1]
 
 # Losowa inicjalizacja wag i biasów
 
-b1 = np.random.randn(n_hidden, 1)
-W1 = np.random.randn(n_hidden, n_inputs)
+b1 = np.random.randn(n_hidden[0], 1)
+W1 = np.random.randn(n_hidden[0], n_inputs)
 
-b2 = np.random.randn(n_outputs, 1)
-W2 = np.random.randn(n_outputs, n_hidden)
+b2 = np.random.randn(n_hidden[1], 1)
+W2 = np.random.randn(n_hidden[1], n_hidden[0])
+
+b3 = np.random.randn(n_hidden[2], 1)
+W3 = np.random.randn(n_hidden[2], n_hidden[1])
+
+b4 = np.random.randn(n_hidden[3], 1)
+W4 = np.random.randn(n_hidden[3], n_hidden[2])
+
+b5 = np.random.randn(n_outputs, 1)
+W5 = np.random.randn(n_outputs, n_hidden[3])
 
 # zerowa inicjalizacja poprzednich kroków minimalizacji
 
@@ -62,9 +70,20 @@ p_W1_old = np.zeros(W1.shape)
 p_b2_old = np.zeros(b2.shape)
 p_W2_old = np.zeros(W2.shape)
 
+p_b3_old = np.zeros(b3.shape)
+p_W3_old = np.zeros(W3.shape)
+
+p_b4_old = np.zeros(b4.shape)
+p_W4_old = np.zeros(W4.shape)
+
+p_b5_old = np.zeros(b5.shape)
+p_W5_old = np.zeros(W5.shape)
+
+
 
 # %% __________________________________________________________________
 # Uczenie sieci metodą SGD + Nesterov momentum.
+
 
 max_epochs = 200 # maksymalna liczba epok
 learning_rate = 0.001 # współczynnik uczenia
@@ -82,11 +101,20 @@ Y = np.zeros((n_outputs, mb_size))
 
 # Z0 = V0 = X
 
-Z1 = np.zeros((n_hidden, mb_size))
-V1 = np.zeros((n_hidden, mb_size))
+Z1 = np.zeros((n_hidden[0], mb_size))
+V1 = np.zeros((n_hidden[0], mb_size))
 
-# Z2 = V2 = Y_hat
-Y_hat = np.zeros((n_outputs, mb_size)) 
+Z2 = np.zeros((n_hidden[1], mb_size))
+V2 = np.zeros((n_hidden[1], mb_size))
+
+Z3 = np.zeros((n_hidden[2], mb_size))
+V3 = np.zeros((n_hidden[2], mb_size))
+
+Z4 = np.zeros((n_hidden[3], mb_size))
+V4 = np.zeros((n_hidden[3], mb_size))
+
+# Z5 = V5 = Y_hat
+Y_hat = np.zeros((n_outputs, mb_size))
 
 # ---
 
@@ -96,9 +124,21 @@ p_W1 = np.zeros(W1.shape)
 p_b2 = np.zeros(b2.shape)
 p_W2 = np.zeros(W2.shape)
 
+p_b3 = np.zeros(b3.shape)
+p_W3 = np.zeros(W3.shape)
+
+p_b4 = np.zeros(b4.shape)
+p_W4 = np.zeros(W4.shape)
+
+p_b5 = np.zeros(b5.shape)
+p_W5 = np.zeros(W5.shape)
+
 # ---
 
-dL_Z2 = np.zeros(Y_hat.shape)
+dL_Z5 = np.zeros(Y_hat.shape)
+dL_Z4 = np.zeros(Z4.shape)
+dL_Z3 = np.zeros(Z3.shape)
+dL_Z2 = np.zeros(Z2.shape)
 dL_Z1 = np.zeros(Z1.shape)
 
 # ---
@@ -109,6 +149,15 @@ dE_dW1 = np.zeros(W1.shape)
 dE_db2 = np.zeros(b2.shape)
 dE_dW2 = np.zeros(W2.shape)
 
+dE_db3 = np.zeros(b3.shape)
+dE_dW3 = np.zeros(W3.shape)
+
+dE_db4 = np.zeros(b4.shape)
+dE_dW4 = np.zeros(W4.shape)
+
+dE_db5 = np.zeros(b5.shape)
+dE_dW5 = np.zeros(W5.shape)
+
 # ---
 
 b1_look = np.zeros(b1.shape)
@@ -117,16 +166,24 @@ W1_look = np.zeros(W1.shape)
 b2_look = np.zeros(b2.shape)
 W2_look = np.zeros(W2.shape)
 
+b3_look = np.zeros(b3.shape)
+W3_look = np.zeros(W3.shape)
+
+b4_look = np.zeros(b4.shape)
+W4_look = np.zeros(W4.shape)
+
+b5_look = np.zeros(b5.shape)
+W5_look = np.zeros(W5.shape)
+
 # ---
 
 MSEtrainTab = np.zeros((max_epochs+1, 1))
 MSEvalTab = np.zeros((max_epochs+1, 1))
 
-
 # Wyjściowe wartości MSE na zbiorze uczącym i walidującym
 
-Ymodel_train = b2 + W2 @ np.tanh( b1 + W1 @ X_train)
-Ymodel_val =   b2 + W2 @ np.tanh( b1 + W1 @ X_val)
+Ymodel_train = b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_train))))
+Ymodel_val =   b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_val))))
 
 MSEtrain = np.mean((Ymodel_train - Y_train) ** 2)
 MSEval = np.mean((Ymodel_val - Y_val) ** 2)
@@ -147,42 +204,81 @@ for i in range(max_epochs):
         W1_look = W1 + momentum * p_W1_old
         b2_look = b2 + momentum * p_b2_old
         W2_look = W2 + momentum * p_W2_old
+        b3_look = b3 + momentum * p_b3_old
+        W3_look = W3 + momentum * p_W3_old
+        b4_look = b4 + momentum * p_b4_old
+        W4_look = W4 + momentum * p_W4_old
+        b5_look = b5 + momentum * p_b5_old
+        W5_look = W5 + momentum * p_W5_old
 
         # Forward pass
         Z1 = W1_look @ X + b1_look
-        V1 = np.tanh( Z1) # f1 = tanh
-        Y_hat = W2_look @ V1 + b2_look
+        V1 = np.tanh( Z1)
+        Z2 = W2_look @ V1 + b2_look
+        V2 = np.tanh( Z2)
+        Z3 = W3_look @ V2 + b3_look
+        V3 = np.tanh( Z3)
+        Z4 = W4_look @ V3 + b4_look
+        V4 = np.tanh( Z4)
+        Y_hat = W5_look @ V4 + b5_look
 
         # Backward pass
-        dL_Z2 = 2 * (Y_hat - Y)
-        dL_Z1 = (W2_look.T @ dL_Z2) * (1 - V1 ** 2) # df1
+        dL_Z5 = 2 * (Y_hat - Y)
+        dL_Z4 = (W5_look.T @ dL_Z5) * (1 - V4 ** 2)
+        dL_Z3 = (W4_look.T @ dL_Z4) * (1 - V3 ** 2)
+        dL_Z2 = (W3_look.T @ dL_Z3) * (1 - V2 ** 2)
+        dL_Z1 = (W2_look.T @ dL_Z2) * (1 - V1 ** 2)
 
         # Gradienty
+        dE_db5 = np.mean(dL_Z5, axis=1, keepdims=True)
+        dE_dW5 = (dL_Z5 @ V4.T) / mb_size
+        dE_db4 = np.mean(dL_Z4, axis=1, keepdims=True)
+        dE_dW4 = (dL_Z4 @ V3.T) / mb_size
+        dE_db3 = np.mean(dL_Z3, axis=1, keepdims=True)
+        dE_dW3 = (dL_Z3 @ V2.T) / mb_size
         dE_db2 = np.mean(dL_Z2, axis=1, keepdims=True)
         dE_dW2 = (dL_Z2 @ V1.T) / mb_size
         dE_db1 = np.mean(dL_Z1, axis=1, keepdims=True)
         dE_dW1 = (dL_Z1 @ X.T) / mb_size
 
         # Aktualizacja kroków
+        p_b5 = momentum * p_b5_old - learning_rate * dE_db5
+        p_W5 = momentum * p_W5_old - learning_rate * dE_dW5
+        p_b4 = momentum * p_b4_old - learning_rate * dE_db4
+        p_W4 = momentum * p_W4_old - learning_rate * dE_dW4
+        p_b3 = momentum * p_b3_old - learning_rate * dE_db3
+        p_W3 = momentum * p_W3_old - learning_rate * dE_dW3
         p_b2 = momentum * p_b2_old - learning_rate * dE_db2
         p_W2 = momentum * p_W2_old - learning_rate * dE_dW2
         p_b1 = momentum * p_b1_old - learning_rate * dE_db1
         p_W1 = momentum * p_W1_old - learning_rate * dE_dW1
 
         # Aktualizacja wag i biasów
+        b5 += p_b5
+        W5 += p_W5
+        b4 += p_b4
+        W4 += p_W4
+        b3 += p_b3
+        W3 += p_W3
         b2 += p_b2
         W2 += p_W2
         b1 += p_b1
         W1 += p_W1
 
         # Zapisanie poprzednich kroków
+        p_b5_old = p_b5
+        p_W5_old = p_W5
+        p_b4_old = p_b4
+        p_W4_old = p_W4
+        p_b3_old = p_b3
+        p_W3_old = p_W3
         p_b2_old = p_b2
         p_W2_old = p_W2
         p_b1_old = p_b1
         p_W1_old = p_W1
 
-    Ymodel_train = b2 + W2 @ np.tanh( b1 + W1 @ X_train)
-    Ymodel_val =   b2 + W2 @ np.tanh( b1 + W1 @ X_val)
+    Ymodel_train = b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_train))))
+    Ymodel_val =   b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_val))))
 
     MSEtrain = np.mean((Ymodel_train - Y_train) ** 2)
     MSEval = np.mean((Ymodel_val - Y_val) ** 2)
@@ -212,17 +308,12 @@ ax2.minorticks_on()  # włącza dodatkowe podziałki
 ax2.grid(True, which='major', linestyle='-')   # grubsze linie dla głównych
 ax2.grid(True, which='minor', linestyle='--', alpha=0.5)   # cieńsze dla pomocniczych
 
-plt.tight_layout() # ładniej wyglądają wykresy
-
-
-
-# %% __________________________________________________________________
-# Wykresy diagnostyczne przed ELM.
+# Wykresy diagnostyczne dopasowania modelu.
 
 # --- Ocena modelu ---
 
-Ymodel_train = b2 + W2 @ np.tanh( b1 + W1 @ X_train)
-Ymodel_val =   b2 + W2 @ np.tanh( b1 + W1 @ X_val)
+Ymodel_train = b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_train))))
+Ymodel_val =   b5 + W5 @ np.tanh( b4 + W4 @ np.tanh( b3 + W3 @ np.tanh( b2 + W2 @ np.tanh( b1 + W1 @ X_val))))
 
 MSEtrain = np.mean((Ymodel_train - Y_train) ** 2)
 MSEval = np.mean((Ymodel_val - Y_val) ** 2)
@@ -255,57 +346,5 @@ ax2.minorticks_on()  # włącza dodatkowe podziałki
 ax2.grid(True, which='major', linestyle='-')   # grubsze linie dla głównych
 ax2.grid(True, which='minor', linestyle='--', alpha=0.5)   # cieńsze dla pomocniczych
 
-plt.tight_layout() # ładniej wyglądają wykresy
 
-
-# %% __________________________________________________________________
-# Douczenie sieci metodą ELM.
-
-lambda_reg = 1e-10  # współczynnik regularizacji
-
-A = np.hstack(( np.ones((n_train, 1)), (np.tanh( b1 + W1 @ X_train)).T ))
-W = np.linalg.solve(A.T @ A + lambda_reg * np.eye(n_hidden + 1), A.T @ Y_train.T)
-
-b2v2 = W[0]
-W2v2 = W[1:].reshape(1, n_hidden)
-
-
-# %% __________________________________________________________________
-# Ocena modelu po douczeniu metodą ELM.
-
-# --- Ocena modelu przed douczeniem ---
-
-Ymodel_train = b2v2 + W2v2 @ np.tanh( W1 @ X_train + b1)
-Ymodel_val = b2v2 + W2v2 @ np.tanh( W1 @ X_val + b1)
-
-MSEtrain = np.mean((Ymodel_train - Y_train) ** 2)
-MSEval = np.mean((Ymodel_val - Y_val) ** 2)
-
-var_norm_MSE_train = MSEtrain / np.var(Y_train)
-var_norm_MSE_val = MSEval / np.var(Y_val)
-
-print(f"\n(train) MSE = {MSEtrain:e},  var-norm-MSE = {var_norm_MSE_train:e}")
-print(f"(val) MSE = {MSEval:e},  var-norm-MSE = {var_norm_MSE_val:e}")
-
-#  --- Wykres dopasowania (prawdziwy Y) vs (przewidywany Y) ---
-
-fig1, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
-
-ax1.scatter(Y_train, Ymodel_train, s=4)
-ax1.plot([Y_train.min(), Y_train.max()], [Y_train.min(), Y_train.max()], 'r--', lw=2)
-ax1.set_title("Parity Plot for ELM on Training Set")
-ax1.set_xlabel("True Values")
-ax1.set_ylabel("Model Values")
-ax1.minorticks_on()  # włącza dodatkowe podziałki
-ax1.grid(True, which='major', linestyle='-')   # grubsze linie dla głównych
-ax1.grid(True, which='minor', linestyle='--', alpha=0.5)   # cieńsze dla pomocniczych
-
-ax2.scatter(Y_val, Ymodel_val, s=4)
-ax2.plot([Y_val.min(), Y_val.max()], [Y_val.min(), Y_val.max()], 'r--', lw=2)
-ax2.set_title("Parity Plot for ELM on Validation Set")
-ax2.set_xlabel("True Values")
-ax2.set_ylabel("Model Values")
-ax2.minorticks_on()  # włącza dodatkowe podziałki
-ax2.grid(True, which='major', linestyle='-')   # grubsze linie dla głównych
-ax2.grid(True, which='minor', linestyle='--', alpha=0.5)   # cieńsze dla pomocniczych
 
