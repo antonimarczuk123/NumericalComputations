@@ -4,5 +4,13 @@ matplotlib      # Wizualizacja danych
 sympy           # Symboliczne obliczenia matematyczne
 scipy           # Obliczenia naukowe
 pandas          # Analiza i manipulacja danymi
+
 jax[cuda12]     # Wydajne obliczenia numeryczne z obsługą GPU
+
+torch           # Biblioteka do uczenia maszynowego i głębokiego uczenia 
+torchvision     # Narzędzia do przetwarzania obrazów dla PyTorch
+torchaudio      # Narzędzia do przetwarzania dźwięku dla PyTorch
+torchtext       # Narzędzia do przetwarzania tekstu dla PyTorch
+
 ipykernel       # Obsługa Jupyter Notebook
+
