@@ -35,32 +35,62 @@ dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
 # %% ========================================================================
 # Define model 
 
-hidden_layers = [50 for _ in range(8)]
+class MyDeepNet(nn.Module):
+    def __init__(self, input_size, hidden_layers_size, hidden_layers_count, output_size):
+        super(MyDeepNet, self).__init__()
+        
+        # Tworzymy listę warstw (ModuleList pozwala PyTorchowi "widzieć" te warstwy)
+        self.layers = nn.ModuleList()
+        
+        # Pierwsza warstwa
+        self.layers.append(nn.Linear(input_size, hidden_layers_size))
+        
+        # Warstwy ukryte
+        for i in range(hidden_layers_count - 1):
+            self.layers.append(nn.Linear(hidden_layers_size, hidden_layers_size))
+            
+        # Warstwa wyjściowa
+        self.output_layer = nn.Linear(hidden_layers_size, output_size)
+        
+        # Funkcja aktywacji
+        self.activation = nn.GELU()
+        
+        # Wywołujemy inicjalizację wag
+        self._init_weights()
 
-layers = []
+    def _init_weights(self):
+        """Prywatna metoda do inicjalizacji wag"""
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
 
-layers.append(nn.Linear(n_inputs, hidden_layers[0]))
-layers.append(nn.GELU())
+    def forward(self, x):
+        """Definicja przepływu danych (Forward Pass)"""
+        for layer in self.layers:
+            x = self.activation(layer(x))
+        
+        # Na wyjściu zazwyczaj nie dajemy aktywacji w regresji
+        x = self.output_layer(x)
+        return x
+    
 
-for i in range(len(hidden_layers) - 1):
-    layers.append(nn.Linear(hidden_layers[i], hidden_layers[i+1]))
-    layers.append(nn.GELU())
-
-layers.append(nn.Linear(hidden_layers[-1], n_outputs))
-
-model = nn.Sequential(*layers)
+hidden_config = [50 for _ in range(8)]
+model = MyDeepNet(n_inputs, hidden_config, n_outputs)
 
 device = 'cpu'
 model.to(device)
+
 criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters())
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 
 
 # %% ========================================================================
 # Train model
 
-epochs = 100
+epochs = 20
 
 for epoch in range(epochs):
     model.train() # Ustawienie modelu w tryb treningu
