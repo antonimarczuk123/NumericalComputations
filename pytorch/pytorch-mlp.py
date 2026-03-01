@@ -12,6 +12,14 @@ from torch.utils.data import DataLoader
 
 device = 'cpu'
 
+# Podstawowym typem danych w PyTorch jest tensor, wyposażony w dodatkowe properties:
+# .data - zawiera dane
+# .grad - zawiera gradienty jeśli są obliczane albo None
+# .grad_fn - zawiera iformacje o operacji, która stworzyła ten tensor
+# .requires_grad - boolean, który mówi czy ten tensor powinien być śledzony pod kątem gradientów
+# .is_leaf - boolean, który mówi czy ten tensor jest "liściem" w drzewie operacji
+
+
 
 # %% ========================================================================
 # Prepare data
