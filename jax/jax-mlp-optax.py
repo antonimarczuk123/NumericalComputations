@@ -9,6 +9,7 @@ from jax import vmap
 from jax import jit
 from jax import grad
 from jax.lax import fori_loop
+from jax.tree_util import tree_map
 from jax.tree_util import tree_reduce
 
 import optax
@@ -87,7 +88,7 @@ def initialize_mlp(key):
 params, key = initialize_mlp(key) # Inicjalizacja sieci
 
 optimizer = optax.adam(learning_rate=0.0001) # Inicjalizacja optymalizatora
-opt_state = optimizer.init(params)
+opt_state = optimizer.init(params) # Inicjalizacja stanu optymalizatora
 
 def mlp_forward(params, x):
     for i in range(m-2):
@@ -125,7 +126,7 @@ def train_step(params, opt_state, key, batch_size):
 
     grads = grad_batch_loss(params, x_batch, y_batch)
     updates, opt_state = optimizer.update(grads, opt_state, params)
-    params = optax.apply_updates(params, updates)
+    params = tree_map(lambda p, u: p + u, params, updates)
     
     return params, opt_state, key
 
