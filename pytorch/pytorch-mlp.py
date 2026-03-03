@@ -6,19 +6,12 @@ import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader
 
 device = 'cpu'
-
-# Podstawowym typem danych w PyTorch jest tensor, wyposażony w dodatkowe properties:
-# .data - zawiera dane
-# .grad - zawiera gradienty jeśli są obliczane albo None
-# .grad_fn - zawiera iformacje o operacji, która stworzyła ten tensor
-# .requires_grad - boolean, który mówi czy ten tensor powinien być śledzony pod kątem gradientów
-# .is_leaf - boolean, który mówi czy ten tensor jest "liściem" w drzewie operacji
-
 
 
 # %% ========================================================================
@@ -26,8 +19,8 @@ device = 'cpu'
 
 Fun = lambda x: 100 * (np.sin(x[:,0] * x[:,1]) + np.cos(x[:,1] + x[:,0]))
 
-n_inputs = 2 # liczba wejść (misi być takie jak w Fun)
-n_outputs = 1 # liczba wyjść
+n_inputs = 2
+n_outputs = 1
 
 n_train = 10000 # liczba próbek uczących
 n_val = 3000   # liczba próbek walidujących
@@ -52,136 +45,109 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 
 # ---
 
-dataset = TensorDataset(
+train_dataset = TensorDataset(
     torch.from_numpy(X_train.astype(np.float32)), 
-    torch.from_numpy(Y_train.astype(np.float32)))
+    torch.from_numpy(Y_train.astype(np.float32))
+)
 
-dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
 
-train_inputs = torch.from_numpy(X_train.astype(np.float32)).to(device)
-train_targets = torch.from_numpy(Y_train.astype(np.float32)).to(device)
-train_targets = train_targets.view(-1, 1) # Upewnienie się,
+val_dataset = TensorDataset(
+    torch.from_numpy(X_val.astype(np.float32)), 
+    torch.from_numpy(Y_val.astype(np.float32))
+)
 
-val_inputs = torch.from_numpy(X_val.astype(np.float32)).to(device)
-val_targets = torch.from_numpy(Y_val.astype(np.float32)).to(device)
-val_targets = val_targets.view(-1, 1) # Upewnienie się, że wymiary się zgadzają
-
+val_dataloader = DataLoader(val_dataset, batch_size=64, shuffle=False)
 
 
 # %% ========================================================================
-# Define model 
+# Define model and initialize weights
 
 class MLPmodel(nn.Module):
-    def __init__(self, input_size, hidden_layers_size, hidden_layers_count, output_size):
+    def __init__(self):
         super(MLPmodel, self).__init__()
-        
-        self.input_layer = (nn.Linear(input_size, hidden_layers_size))
-        
-        self.middle_layers = nn.ModuleList([
-            nn.Linear(hidden_layers_size, hidden_layers_size) 
-            for _ in range(hidden_layers_count - 1)
-        ])
 
-        self.output_layer = nn.Linear(hidden_layers_size, output_size)
-        
-        self.activation = nn.GELU()
+        self.fc1 = nn.Linear(2, 50)
+        self.fc2 = nn.Linear(50, 50)
+        self.fc3 = nn.Linear(50, 50)
+        self.fc4 = nn.Linear(50, 50)
+        self.fc5 = nn.Linear(50, 1)
 
-        self._initialize_weights()
+        self.init_weights()
 
-    def _initialize_weights(self):
+    def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight)
-                nn.init.zeros_(m.bias)
-        
+                nn.init.kaiming_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+    
     def forward(self, x):
-        x = self.input_layer(x)
-        x = self.activation(x)
-
-        for layer in self.middle_layers:
-            x = layer(x)
-            x = self.activation(x)
-
-        x = self.output_layer(x)
+        x = F.gelu(self.fc1(x))
+        x = F.gelu(self.fc2(x))
+        x = F.gelu(self.fc3(x))
+        x = F.gelu(self.fc4(x))
+        x = self.fc5(x)
         return x
     
-model = MLPmodel(n_inputs, 50, 8, n_outputs)
-
-model.to(device)
-
-criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters())
-
-
+model = MLPmodel().to(device)
+    
 
 # %% ========================================================================
-# Train model
+# Training
 
-epochs = 30
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-for epoch in range(1, epochs + 1):
-    model.train() # Ustawienie modelu w tryb treningu
-    
-    for i, (inputs, targets) in enumerate(dataloader):
+n_epochs = 50
 
-        inputs, targets = inputs.to(device), targets.to(device)
-        targets = targets.view(-1, 1) # Upewnienie się, że wymiary się zgadzają
+train_losses = np.zeros(n_epochs)
+val_losses = np.zeros(n_epochs)
 
+for epoch in range(n_epochs):
+    model.train()
+    running_train_loss = 0.0
+
+    for X_batch, Y_batch in train_dataloader:
         optimizer.zero_grad()
 
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
+        preds = model(X_batch)
+        train_loss = criterion(preds, Y_batch)
 
-        loss.backward()
+        train_loss.backward()
         optimizer.step()
+
+        running_train_loss += train_loss.item()
+
+    model.eval()
+    running_val_loss = 0.0
+
+    with torch.no_grad():
+        for X_batch, Y_batch in val_dataloader:
+            preds = model(X_batch)
+            val_loss = criterion(preds, Y_batch)
+            running_val_loss += val_loss.item()
+
+    avg_train_loss = running_train_loss / len(train_dataloader)
+    avg_val_loss = running_val_loss / len(val_dataloader)
     
-    if epoch % 5 == 0 or epoch == 1 or epoch == epochs:
-        model.eval() # Ustawienie modelu w tryb ewaluacji
-        with torch.no_grad():
-            train_outputs = model(train_inputs)
-            train_loss = criterion(train_outputs, train_targets)
+    print(f'Epoch {epoch}/{n_epochs-1}, Train Loss: {avg_train_loss:.6e}, Val Loss: {avg_val_loss:.6e}')
 
-            val_outputs = model(val_inputs)
-            val_loss = criterion(val_outputs, val_targets)
-
-        print(f'Epoch {epoch}/{epochs}, Training Loss: {train_loss.item():.6e}, Validation Loss: {val_loss.item():.6e}')
+    train_losses[epoch] = avg_train_loss
+    val_losses[epoch] = avg_val_loss
 
 
-model.eval() # Ustawienie modelu w tryb ewaluacji
-with torch.no_grad():
-    train_outputs = model(train_inputs)
-    train_loss = criterion(train_outputs, train_targets)
-
-    val_outputs = model(val_inputs)
-    val_loss = criterion(val_outputs, val_targets)
-
-print(f'Final Training Loss: {train_loss.item():.6e}, Final Validation Loss: {val_loss.item():.6e}')
-
-Y_train_pred = train_outputs.cpu().numpy()
-Y_val_pred = val_outputs.cpu().numpy()
-
-fig3 = plt.figure()
-ax = fig3.add_subplot(111)
-ax.scatter(Y_train, Y_train_pred, s=4)
-ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
-ax.set_title('Train set')
-ax.set_xlabel('True values')
-ax.set_ylabel('Predicted values')
+fig1 = plt.figure()
+ax = fig1.add_subplot(111)
+ax.semilogy(train_losses, label='Train loss')
+ax.semilogy(val_losses, label='Val loss')
+ax.set_xlabel('Epoch')
+ax.set_ylabel('Loss')
 ax.minorticks_on()
 ax.grid(True, which='major', linestyle='-')
 ax.grid(True, which='minor', linestyle='--', alpha=0.5)
+ax.legend()
 
-fig4 = plt.figure()
-ax = fig4.add_subplot(111)
-ax.scatter(Y_val, Y_val_pred, s=4)
-ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
-ax.set_title('Val set')
-ax.set_xlabel('True values')
-ax.set_ylabel('Predicted values')
-ax.minorticks_on()
-ax.grid(True, which='major', linestyle='-')
-ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
-plt.show()
 
 

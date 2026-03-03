@@ -13,5 +13,7 @@ torchvision     # Narzędzia do przetwarzania obrazów dla PyTorch
 torchaudio      # Narzędzia do przetwarzania dźwięku dla PyTorch
 torchtext       # Narzędzia do przetwarzania tekstu dla PyTorch
 
+scikit-learn    # Narzędzia do uczenia maszynowego i analizy danych
+
 ipykernel       # Obsługa Jupyter Notebook
 

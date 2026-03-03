@@ -30,7 +30,7 @@ jax.config.update("jax_enable_x64", False)
 # Przygotowanie danych
 
 # Funkcja do aproksymacji (bardzo trudna do aproksymacji)
-Fun = lambda x: 0.05 * jnp.sin(x[0] * x[1]) * jnp.cos(x[1] + x[0]) * x[0]**2
+Fun = lambda x: 100 * (jnp.sin(x[0] * x[1]) + jnp.cos(x[1] + x[0]))
 
 vmap_Fun = vmap(Fun, in_axes=0, out_axes=0)
 
