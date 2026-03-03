@@ -7,6 +7,8 @@ JAX to biblioteka do obliczeń numerycznych, która oferuje funkcje podobne do N
 W JAX stosujemy programowanie funkcyjne, czyli nie mamy żadnych wewnętrznych stanów objektów, wszystkie dane są niezmienne - funkcje przyjmują dane jako argumenty i zwracają nowe dane. Dzięki temu JAX jest niezwykle prosty i przewidywalny.
 
 JAX używa własnego generatora liczb losowych, który jest funkcjonalny - Threefry. Zawsze gdy generujemy losowe liczby, robimy split klucza!!! Nowy key trzymamy na przyszłość do kolejnych splitów, a subkey używamy do generowania liczb.
+
+Dodatkowo przydatną bibliteką do JAX jest Optax, która oferuje gotowe implementacje optymalizatorów, takich jak Adam, RMSProp, SGD itp.
 """
 
 import time
