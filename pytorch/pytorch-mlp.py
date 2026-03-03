@@ -140,6 +140,38 @@ ax.grid(True, which='major', linestyle='-')
 ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 ax.legend()
 
+model.eval()
+with torch.no_grad():
+    train_exact = Y_train.cpu().numpy()
+    train_preds = model(X_train).cpu().numpy()
+
+    val_exact = Y_val.cpu().numpy()
+    val_preds = model(X_val).cpu().numpy()
+
+fig3 = plt.figure()
+ax = fig3.add_subplot(111)
+ax.scatter(train_exact, train_preds, s=4)
+ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
+ax.set_title('Train set')
+ax.set_xlabel('True values')
+ax.set_ylabel('Predicted values')
+ax.minorticks_on()
+ax.grid(True, which='major', linestyle='-')
+ax.grid(True, which='minor', linestyle='--', alpha=0.5)
+
+fig4 = plt.figure()
+ax = fig4.add_subplot(111)
+ax.scatter(val_exact, val_preds, s=4)
+ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
+ax.set_title('Val set')
+ax.set_xlabel('True values')
+ax.set_ylabel('Predicted values')
+ax.minorticks_on()
+ax.grid(True, which='major', linestyle='-')
+ax.grid(True, which='minor', linestyle='--', alpha=0.5)
+
+plt.show()
+
 
 
 
