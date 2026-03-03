@@ -87,7 +87,7 @@ def initialize_mlp(key):
 
 params, key = initialize_mlp(key) # Inicjalizacja sieci
 
-optimizer = optax.adam(learning_rate=0.0001) # Inicjalizacja optymalizatora
+optimizer = optax.adam(learning_rate=0.0003) # Inicjalizacja optymalizatora
 opt_state = optimizer.init(params) # Inicjalizacja stanu optymalizatora
 
 def mlp_forward(params, x):

@@ -2,10 +2,6 @@
 # Imports
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import TensorDataset
-from torch.utils.data import DataLoader
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -54,13 +50,13 @@ Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 # Define and initialize model
 
 class myMLP():
-    def __init__(self, X_train, Y_train, X_val, Y_val):
+    def __init__(self):
         super().__init__()
 
-        self.X_train = X_train
-        self.Y_train = Y_train
-        self.X_val = X_val
-        self.Y_val = Y_val
+        self.X_train = None
+        self.Y_train = None
+        self.X_val = None
+        self.Y_val = None
 
         self.n_train = X_train.shape[0]
         self.n_val = X_val.shape[0]
@@ -89,7 +85,13 @@ class myMLP():
             self.b0, self.b1, self.b2, self.b3, self.b4
         ]
 
-        self.optimizer = optim.SGD(self.params, lr=0.001, momentum=0.9, nesterov=True)
+        self.optimizer = torch.optim.Adam(self.params, lr=0.001)
+
+    def load_data(self, X_train, Y_train, X_val, Y_val):
+        self.X_train = X_train
+        self.Y_train = Y_train
+        self.X_val = X_val
+        self.Y_val = Y_val
 
     def initialize_weights(self):
         with torch.no_grad():
@@ -132,7 +134,8 @@ class myMLP():
 
         return train_loss, val_loss
     
-mlp = myMLP(X_train, Y_train, X_val, Y_val)
+mlp = myMLP()
+mlp.load_data(X_train, Y_train, X_val, Y_val)
 mlp.initialize_weights()
         
 
@@ -152,7 +155,16 @@ for epoch in range(n_epochs):
     val_losses[epoch] = val_loss
     print(f'Epoch {epoch}/{n_epochs-1}, Train Loss: {train_loss:.6e}, Val Loss: {val_loss:.6e}')
 
-    
+fig1 = plt.figure()
+ax = fig1.add_subplot(111)
+ax.semilogy(train_losses, label='Train loss')
+ax.semilogy(val_losses, label='Val loss')
+ax.set_xlabel('Epoch')
+ax.set_ylabel('Loss')
+ax.minorticks_on()
+ax.grid(True, which='major', linestyle='-')
+ax.grid(True, which='minor', linestyle='--', alpha=0.5)
+ax.legend()
 
 
 

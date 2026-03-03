@@ -1,6 +1,14 @@
 # %% ===================================================================
 # importy
 
+"""
+JAX to biblioteka do obliczeń numerycznych, która oferuje funkcje podobne do NumPy, ale z dodatkowymi możliwościami, takimi jak automatyczne różniczkowanie, kompilacja just-in-time (JIT) i obsługa GPU/TPU. 
+
+W JAX stosujemy programowanie funkcyjne, czyli nie mamy żadnych wewnętrznych stanów objektów, wszystkie dane są niezmienne - funkcje przyjmują dane jako argumenty i zwracają nowe dane. Dzięki temu JAX jest niezwykle prosty i przewidywalny.
+
+JAX używa własnego generatora liczb losowych, który jest funkcjonalny - Threefry. Zawsze gdy generujemy losowe liczby, robimy split klucza!!! Nowy key trzymamy na przyszłość do kolejnych splitów, a subkey używamy do generowania liczb.
+"""
+
 import time
 
 import jax
