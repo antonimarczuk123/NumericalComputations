@@ -17,7 +17,7 @@ device = 'cpu'
 # %% ========================================================================
 # Prepare data
 
-Fun = lambda x: 100 * (np.sin(x[:,0] * x[:,1]) + np.cos(x[:,1] + x[:,0]))
+Fun = lambda x: 100 * (torch.sin(x[:,0] * x[:,1]) + torch.cos(x[:,1] + x[:,0]))
 
 n_inputs = 2
 n_outputs = 1
@@ -28,7 +28,7 @@ n_val = 3000   # liczba próbek walidujących
 X_min = 0
 X_max = 10
 
-X_train = np.random.uniform(X_min, X_max, (n_train, n_inputs))
+X_train = torch.rand(n_train, n_inputs) * (X_max - X_min) + X_min
 Y_train = Fun(X_train).reshape(n_train, n_outputs)
 
 Y_min = Y_train.min() # minimalna wartość Y w zbiorze uczącym
@@ -37,26 +37,18 @@ Y_max = Y_train.max() # maksymalna wartość Y w zbiorze uczącym
 X_train = (X_train - X_min) / (X_max - X_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 Y_train = (Y_train - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 
-X_val = np.random.uniform(X_min, X_max, (n_val, n_inputs))
+X_val = torch.rand(n_val, n_inputs) * (X_max - X_min) + X_min
 Y_val = Fun(X_val).reshape(n_val, n_outputs)
 
 X_val = (X_val - X_min) / (X_max - X_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 
-# ---
+# -----
 
-train_dataset = TensorDataset(
-    torch.from_numpy(X_train.astype(np.float32)), 
-    torch.from_numpy(Y_train.astype(np.float32))
-)
-
+train_dataset = TensorDataset(X_train, Y_train)
 train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
 
-val_dataset = TensorDataset(
-    torch.from_numpy(X_val.astype(np.float32)), 
-    torch.from_numpy(Y_val.astype(np.float32))
-)
-
+val_dataset = TensorDataset(X_val, Y_val)
 val_dataloader = DataLoader(val_dataset, batch_size=64, shuffle=False)
 
 
