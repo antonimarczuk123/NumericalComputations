@@ -98,7 +98,6 @@ def mlp_forward(params, x):
     return x
 
 vmap_mlp_forward = vmap(mlp_forward, in_axes=(None, 0), out_axes=0)
-jit_vmap_mlp_forward = jit(vmap_mlp_forward)
 
 def single_loss(params, x, y):
     y_pred = mlp_forward(params, x)
@@ -146,6 +145,9 @@ def N_train_steps(params, opt_state, key, batch_size, n_steps):
 
 jit_N_train_steps = jit(N_train_steps, static_argnames=('batch_size', 'n_steps'))
 
+# we need it to keep the best parameters based on validation loss
+best_val_loss = jnp.inf
+best_params = None
 
 
 # %% =================================================================
@@ -171,10 +173,14 @@ for epoch in range(max_epochs):
 
     print(f"Epoch {epoch}/{max_epochs-1}: Train Loss = {train_loss:.6e}, Val Loss = {val_loss:.6e}, Grad Norm = {grad_norm:.6e}")
 
-print(f"Train Loss = {train_loss:.6e}, Val Loss = {val_loss:.6e}")
+    if val_loss < best_val_loss:
+        best_val_loss = val_loss
+        best_params = params
 
 end = time.time()
+
 print(f"Training time: {end - start} seconds")
+print(f"Best val Loss = {batch_loss(best_params, X_val, Y_val):.6e}")
 
 fig1 = plt.figure()
 ax = fig1.add_subplot(111)
@@ -199,7 +205,7 @@ ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 fig3 = plt.figure()
 ax = fig3.add_subplot(111)
-ax.scatter(Y_train, jit_vmap_mlp_forward(params, X_train), s=4)
+ax.scatter(Y_train, vmap_mlp_forward(best_params, X_train), s=4)
 ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
 ax.set_title('Train set')
 ax.set_xlabel('True values')
@@ -210,7 +216,7 @@ ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 fig4 = plt.figure()
 ax = fig4.add_subplot(111)
-ax.scatter(Y_val, jit_vmap_mlp_forward(params, X_val), s=4)
+ax.scatter(Y_val, vmap_mlp_forward(best_params, X_val), s=4)
 ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
 ax.set_title('Val set')
 ax.set_xlabel('True values')
