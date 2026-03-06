@@ -65,6 +65,7 @@ Y_val = vmap_Fun(X_val).reshape(n_val, n_outputs)
 X_val = (X_val - X_min) / (X_max - X_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 Y_val = (Y_val - Y_min) / (Y_max - Y_min) * 2 - 1  # Przeskalowanie do [-1, 1]
 
+
 # %% =================================================================
 # Inicjalizacja sieci i funkcji 
 
