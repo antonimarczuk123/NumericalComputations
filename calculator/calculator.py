@@ -1,11 +1,14 @@
 # %% ==========================================================================
+# Importing libraries
 
 import numpy as np
+import sympy as sp
+import scipy
 import matplotlib.pyplot as plt
 
 
 # %% ==========================================================================
-# AC circuit
+# Phasor calculation
 
 U = 220
 Z = 15 + 47*1j
@@ -70,6 +73,10 @@ axPhase.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 
 # %% ==========================================================================
+# Solving system of non-linear equations with scipy.optimize.fsolve
+
+
+
 
 
 
