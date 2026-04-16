@@ -73,7 +73,33 @@ axPhase.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 
 # %% ==========================================================================
-# Solving system of non-linear equations with scipy.optimize.fsolve
+# Inverting amplifier
+
+Vin, Vout, Vs, Z1, Z2, I, A = sp.symbols('Vin Vout Vs Z1 Z2 I A')
+
+eq1 = sp.Eq(Vin - Vs, Z1*I)
+eq2 = sp.Eq(Vs - Vout, Z2*I)
+eq3 = sp.Eq(Vout, -A*Vs)
+
+sol = sp.solve((eq1, eq2, eq3), (Vout, Vs, I))
+Vout, Vs, I = sol[Vout], sol[Vs], sol[I]
+
+print()
+print(f"Vout = {Vout}")
+print(f"Vs = {Vs}")
+print(f"I = {I}")
+
+# ideal A --> infinity
+
+Vout_ideal = sp.limit(Vout, A, sp.oo)
+Vs_ideal = sp.limit(Vs, A, sp.oo)
+I_ideal = sp.limit(I, A, sp.oo)
+
+print()
+print(f"Vout_ideal = {Vout_ideal}")
+print(f"Vs_ideal = {Vs_ideal}")
+print(f"I_ideal = {I_ideal}")
+
 
 
 
