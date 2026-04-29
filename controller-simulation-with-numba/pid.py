@@ -1,12 +1,3 @@
-# %% =========================================================
-# Matplotlib qt mode
-
-# run this command to enable interactive plotting in a separate window
-# (instead of inline in the notebook):
-
-# %matplotlib qt
-
-
 # %% ==========================================================
 # Regulacja PID obiektu nieliniowego z małym opóźnieniem
 
@@ -20,8 +11,8 @@
 # opóźnień należałoby zastosować regulator predykcyjny.
 
 import numpy as np
-import matplotlib.pyplot as plt
 from numba import njit
+import matplotlib.pyplot as plt
 
 # dx1/dt(t) = ( u(t-tau) + z(t) -23 sqrt(x1(t)) ) / ( 0.7 x1(t) )
 # dx2/dt(t) = ( 23 sqrt(x1(t)) - 30 sqrt(x2(t)) ) / ( 1.35 x2(t)^2 )
@@ -150,6 +141,7 @@ ax2.grid(True, which='major', linestyle='-')
 ax2.grid(True, which='minor', linestyle='--', alpha=0.5)
 ax2.legend()
 
+plt.tight_layout()
 plt.show()
 
 
