@@ -1,3 +1,12 @@
+# %% =========================================================
+# Matplotlib qt mode
+
+# run this command to enable interactive plotting in a separate window
+# (instead of inline in the notebook):
+
+# %matplotlib qt
+
+
 # %% ==========================================================
 # Regulacja PID obiektu nieliniowego z małym opóźnieniem
 

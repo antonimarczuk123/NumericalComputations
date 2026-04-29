@@ -16,4 +16,5 @@ torchtext       # Narzędzia do przetwarzania tekstu dla PyTorch
 scikit-learn    # Narzędzia do uczenia maszynowego i analizy danych
 
 ipykernel       # Obsługa Jupyter Notebook
+PyQt6           # Interfejs graficzny
 
