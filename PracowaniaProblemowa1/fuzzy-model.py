@@ -117,15 +117,15 @@ def initialize_ts(key):
     
     # Inicjalizacja zbiorów rozmytych dla y0
     n0 = 5 # liczba zbiorów rozmytych dla y0
-    y0_means = jnp.linspace(CA_min, CA_max, n0)
+    y0_means = jnp.linspace(0.0, 1.0, n0)
     dist = y0_means[1] - y0_means[0]
-    y0_stds = jnp.full((n0,), 3.0 * dist)
-
+    y0_stds = jnp.full((n0,), 0.6 * dist)
+    
     # Inicjalizacja zbiorów rozmytych dla y1
     n1 = 5 # liczba zbiorów rozmytych dla y1
-    y1_means = jnp.linspace(T_min, T_max, n1)
+    y1_means = jnp.linspace(0.0, 1.0, n1)
     dist = y1_means[1] - y1_means[0]
-    y1_stds = jnp.full((n1,), 3.0 * dist)
+    y1_stds = jnp.full((n1,), 0.6 * dist)
 
     # Inicjalizacja wag dla reguł TS
     n_rules = n0 * n1 # liczba reguł TS
