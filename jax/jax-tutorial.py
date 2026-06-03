@@ -133,9 +133,9 @@ def f(x,y):
 Dxf = grad(f, 0) # Dxf(x,y)
 Dyf = grad(f, 1) # Dyf(x,y)
 
-vmap_f = vmap(f, in_axes=(0, 0))        # vmap_f(xBatch, yBatch)
-vmap_Dxf = vmap(Dxf, in_axes=(0, 0))    # vmap_Dxf(xBatch, yBatch)
-vmap_Dyf = vmap(Dyf, in_axes=(0, 0))    # vmap_Dyf(xBatch, yBatch)
+vmap_f = vmap(f, in_axes=(0, 0), out_axes=0)        # vmap_f(xBatch, yBatch)
+vmap_Dxf = vmap(Dxf, in_axes=(0, 0), out_axes=0)    # vmap_Dxf(xBatch, yBatch)
+vmap_Dyf = vmap(Dyf, in_axes=(0, 0), out_axes=0)    # vmap_Dyf(xBatch, yBatch)
 
 xBatch = jnp.array([
     [0.5, 1.0, 1.5],

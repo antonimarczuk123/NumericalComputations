@@ -133,9 +133,34 @@ print(f"I_ideal = {I_ideal}")
 # %% ==========================================================================
 
 
+w = np.logspace(7.7, 7.9, 5000)
+C0 = 5e-12
+C1 = 0.01e-12
+L1 =  25e-3
+R1 = 50
 
+Z0 = -1J/(w*C0)
+Z1 = R1 + 1j*w*L1 - 1j/(w*C1)
 
+Y = 1/Z0 + 1/Z1
+Z = 1/Y
 
+fig1 = plt.figure()
+
+axMag = fig1.add_subplot(211)
+axMag.loglog(w, Z.real)
+axMag.set_ylabel('Magnitude')
+axMag.minorticks_on()
+axMag.grid(True, which='major', linestyle='-')
+axMag.grid(True, which='minor', linestyle='--', alpha=0.5)
+
+axPhase = fig1.add_subplot(212, sharex=axMag)
+axPhase.semilogx(w, Z.imag)
+axPhase.set_xlabel('Omega [rad/s]')
+axPhase.set_ylabel('Phase [deg]')
+axPhase.minorticks_on()
+axPhase.grid(True, which='major', linestyle='-')
+axPhase.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 
 
