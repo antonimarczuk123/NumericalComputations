@@ -38,21 +38,30 @@ CAin_p = 2; % kmol/m^3
 Tin_p = 343; % K
 TCin_p = 310; % K
 
+
 FC_p_tab = [7, 9, 12, 15, 17, 18]; % m^3/min
-CA_p_tab = [0.0348784655658222, 0.05557088024052338, 0.09821109463204293, 0.1597172021766315, 0.2169364570631375, 1.828622864494349]; % kmol/m^3
-T_p_tab = [438.5550598263770, 427.8255516809578, 415.2091350393931, 404.7356680017397, 398.2004016808073, 328.0431883372068]; % K
 
-Adf = cell(6, 1);
-Bdf = cell(6, 1);
-Edf = cell(6, 1);
-Atf = cell(6, 1);
-Vtf = cell(6, 1);
-K1f = cell(6, 1);
+CA_p_tab = [3.487884655658222e-02, 0.05557088024052338, 0.09821109463204293, 0.1597172021766315, ...
+    2.169362196188264e-01, 1.828622864494349]; % kmol/m^3
 
-for iif = 1:6
-    FC_p = FC_p_tab(iif);
-    CA_p = CA_p_tab(iif);
-    T_p = T_p_tab(iif);
+T_p_tab = [4.385550598263770e+02, 427.8255516809578, 415.2091350393931, 404.7356680017397, ...
+    3.982004075634566e+02, 328.0431883372068]; % K
+
+n_fuzzy = length(FC_p_tab);
+
+Adf = cell(n_fuzzy, 1);
+Bdf = cell(n_fuzzy, 1);
+Edf = cell(n_fuzzy, 1);
+Atf = cell(n_fuzzy, 1);
+Vtf = cell(n_fuzzy, 1);
+K1f = cell(n_fuzzy, 1);
+
+for ii = 1:n_fuzzy
+    FC_p = FC_p_tab(ii);
+    CA_p = CA_p_tab(ii);
+    T_p = T_p_tab(ii);
+
+    disp(f(CA_p, T_p, CAin_p, FC_p, Tin_p, TCin_p));
 
     % ================================================================================
     % Linearization
@@ -90,9 +99,9 @@ for iif = 1:6
     Bd = Tmp*B;
     Ed = Tmp*E;
 
-    Adf{iif} = Ad;
-    Bdf{iif} = Bd;
-    Edf{iif} = Ed;
+    Adf{ii} = Ad;
+    Bdf{ii} = Bd;
+    Edf{ii} = Ed;
 
     % ===============================================================================
     % MPCS matrices
@@ -127,13 +136,13 @@ for iif = 1:6
     K = (Mt' * Q * Mt + R) \ (Mt' * Q);
     K1 = K(1:nu, :);
 
-    Atf{iif} = At;
-    Vtf{iif} = Vt;
-    K1f{iif} = K1;
+    Atf{ii} = At;
+    Vtf{ii} = Vt;
+    K1f{ii} = K1;
 
 end
 
-mf = cell(6, 1);
+mf = cell(n_fuzzy, 1);
 mf{1} = @(FC) trapmf(FC, [-1e7, -1e6, 7, 9]);
 mf{2} = @(FC) trimf(FC, [7, 9, 12]);
 mf{3} = @(FC) trimf(FC, [9, 12, 15]);
@@ -141,8 +150,15 @@ mf{4} = @(FC) trimf(FC, [12, 15, 17]);
 mf{5} = @(FC) trimf(FC, [15, 17, 18]);
 mf{6} = @(FC) trapmf(FC, [17, 18, 1e6, 1e7]);
 
+FC_test = 0:0.1:30;
+figure;
+for ii = 1:n_fuzzy
+    plot(FC_test, mf{ii}(FC_test), 'LineWidth', 2); hold on;
+end
+
 % ===============================================================================
 % clear temporary variables
+clear FC_test;
 clear i iif nn nx;
 clear X Y;
 clear K K1 lambda;

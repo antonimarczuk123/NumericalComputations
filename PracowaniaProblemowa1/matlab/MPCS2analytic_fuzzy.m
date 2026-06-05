@@ -2,10 +2,10 @@
 % Before running this file, run MPCS1.m to compute the MPCS matrices.
 % Then run MPCS2analytic.m or MPCS2numeric to simulate the closed-loop system.
 
-CAin_min = 0.01; CAin_max = 6; % kmol/m^3
+CAin_min = 0.01; CAin_max = 10; % kmol/m^3
 dCAin_min = -0.5; dCAin_max = 0.5; % kmol/(m^3*min)
 
-FC_min = 0.1; FC_max = 60; % m^3/min
+FC_min = 0.1; FC_max = 100; % m^3/min
 dFC_min = -5; dFC_max = 5; % m^3/(min^2)
 
 u_min = [CAin_min; FC_min];
@@ -15,17 +15,17 @@ du_min = [dCAin_min; dFC_min];
 du_max = [dCAin_max; dFC_max];
 
 % operating point
-xp = cell(6, 1);
-up = cell(6, 1);
-zp = cell(6, 1);
-for iif = 1:6
-    CA_p = CA_p_tab(iif);
-    T_p = T_p_tab(iif);
-    FC_p = FC_p_tab(iif);
+xp = cell(n_fuzzy, 1);
+up = cell(n_fuzzy, 1);
+zp = cell(n_fuzzy, 1);
+for ii = 1:n_fuzzy
+    CA_p = CA_p_tab(ii);
+    T_p = T_p_tab(ii);
+    FC_p = FC_p_tab(ii);
 
-    xp{iif} = [CA_p; T_p];
-    up{iif} = [CAin_p; FC_p];
-    zp{iif} = [Tin_p; TCin_p];
+    xp{ii} = [CA_p; T_p];
+    up{ii} = [CAin_p; FC_p];
+    zp{ii} = [Tin_p; TCin_p];
 end
 
 % initial state, control, disturbance
@@ -43,7 +43,7 @@ f = @(x, u, z) [
 Tend = 50; % simulation time [min]
 N_sim = floor(Tend/Ts); % number of time steps
 
-n_sim = 10; % number of RK4 steps per Ts to be more accurate
+n_sim = 100; % number of RK4 steps per Ts to be more accurate
 h_step = Ts/n_sim; % integration step size
 
 t = linspace(0, Tend, N_sim); % time vector
@@ -53,9 +53,9 @@ u = u0 * ones(1, N_sim);
 
 x_ref = [
     % CA reference trajectory
-    0.16 * ones(1, N_sim) - 0 * (t >= 1) + 0 * (t >= 10) + 0 * (t >= 35);
+    0.16 * ones(1, N_sim) - 0.05 * (t >= 1) + 0 * (t >= 10) - 0 * (t >= 35);
     % T reference trajectory
-    405 * ones(1, N_sim) + 5 * (t >= 15) - 10 * (t >= 30);
+    405 * ones(1, N_sim) - 10 * (t >= 15) + 20 * (t >= 30);
 ];
 
 z = [
@@ -69,8 +69,8 @@ z = [
 % ================================================================================
 % MPCS simulation loop
 
-dukf = cell(6, 1);
-mf_val = cell(6, 1);
+dukf = cell(n_fuzzy, 1);
+mf_val = cell(n_fuzzy, 1);
 
 for k = 2:N_sim-1
     x_ref_curr = x_ref(:, k);
@@ -85,7 +85,7 @@ for k = 2:N_sim-1
 
     % ---------- MPCS control law
 
-    for ii = 1:6
+    for ii = 1:n_fuzzy
         vk = (x_curr - xp{ii}) - (Adf{ii}*(x_prev - xp{ii}) + Bdf{ii}*(u_prev - up{ii}) + Edf{ii}*(z_prev - zp{ii}));
         X0 = Atf{ii} * (x_curr - xp{ii}) + Vtf{ii} * (Bdf{ii}*(u_prev - up{ii}) + Edf{ii}*(z_curr - zp{ii}) + vk);
         Xref = repmat(x_ref_curr - xp{ii}, N, 1);
@@ -95,15 +95,18 @@ for k = 2:N_sim-1
 
     FC_prev = u_prev(2);
     mf_val_sum = 0;
-    for ii = 1:6
+    for ii = 1:n_fuzzy
         mf_val{ii} = mf{ii}(FC_prev);
         mf_val_sum = mf_val_sum + mf_val{ii};
     end
     
-    duk = [0;0];
-    for ii = 1:6
-        duk = duk + (mf_val{ii}/mf_val_sum) * dukf{ii};
-    end
+    % duk = [0;0];
+    % for ii = 1:n_fuzzy
+    %     duk = duk + (mf_val{ii}/mf_val_sum) * dukf{ii};
+    % end
+
+    [~, max_idx] = max(cell2mat(mf_val));
+    duk = dukf{max_idx};
 
     duk = max(du_min, min(du_max, duk));
     u_curr = u_prev + duk;

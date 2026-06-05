@@ -34,7 +34,7 @@ f = @(x, u, z) [
 Tend = 50; % simulation time [min]
 N_sim = floor(Tend/Ts); % number of time steps
 
-n_sim = 10; % number of RK4 steps per Ts to be more accurate
+n_sim = 100; % number of RK4 steps per Ts to be more accurate
 h_step = Ts/n_sim; % integration step size
 
 t = linspace(0, Tend, N_sim); % time vector
@@ -44,16 +44,16 @@ u = u0 * ones(1, N_sim);
 
 x_ref = [
     % CA reference trajectory
-    CA_p * ones(1, N_sim) - 0 * (t >= 1) + 0 * (t >= 10) + 0 * (t >= 35);
+    0.16 * ones(1, N_sim) - 0.05 * (t >= 1) + 0 * (t >= 10) - 0 * (t >= 35);
     % T reference trajectory
-    T_p * ones(1, N_sim) + 5 * (t >= 15) - 10 * (t >= 30);
+    405 * ones(1, N_sim) - 10 * (t >= 15) + 20 * (t >= 30);
 ];
 
 z = [
     % Tin disturbance trajectory
-    Tin_p * ones(1, N_sim) + 0 * (t >= 5) - 0 * (t >= 30);
+    343 * ones(1, N_sim) + 0 * (t >= 5) - 0 * (t >= 30);
     % TCin disturbance trajectory
-    TCin_p * ones(1, N_sim) + 0 * (t >= 20) - 0 * (t >= 40);
+    310 * ones(1, N_sim) + 0 * (t >= 20) - 0 * (t >= 40);
 ];
 
 

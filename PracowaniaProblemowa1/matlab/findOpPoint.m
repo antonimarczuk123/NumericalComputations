@@ -27,7 +27,7 @@ F = 1; % m^3/min
 
 % Operating point - control and disturbances
 CAin_p = 2.0; % kmol/m^3
-FC_p = 7; % m^3/min
+FC_p = 17; % m^3/min
 Tin_p = 343; % K
 TCin_p = 310; % K
 
@@ -76,8 +76,8 @@ f_ode = @(t, x) [
 ];
 
 % symulacja ode45
-% [t, x] = ode45(f_ode, [0 Tend], [CA_p; T_p], odeset('RelTol',1e-8,'AbsTol',1e-10));
-[t, x] = ode15s(f_ode, [0 Tend], [CA_p; T_p], odeset('RelTol',1e-8,'AbsTol',1e-10));
+[t, x] = ode45(f_ode, [0 Tend], [CA_p; T_p], odeset('RelTol',1e-8,'AbsTol',1e-10));
+% [t, x] = ode15s(f_ode, [0 Tend], [CA_p; T_p], odeset('RelTol',1e-8,'AbsTol',1e-10));
 
 fprintf("Punkt pracy (CA_p, T_p):\n");
 disp(x(end,:));
