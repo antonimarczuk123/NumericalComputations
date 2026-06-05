@@ -111,22 +111,6 @@ R = lambda * kron(eye(Nu), diag([20, 0.1]));
 K = (Mt' * Q * Mt + R) \ (Mt' * Q);
 K1 = K(1:nu, :);
 
-% Below we prepare matrices for quadprog:
-
-H = 2 * (Mt' * Q * Mt + R);
-H = (H + H') / 2; % make sure H is symmetric
-
-J = zeros(Nu*nu, Nu*nu);
-for i = 1:Nu
-    for j = 1:Nu
-        if i >= j 
-            J((i-1)*nu+1 : i*nu, (j-1)*nu+1 : j*nu) = eye(nu);
-        end
-    end
-end
-
-AA = [-J; J];
-
 
 % ===============================================================================
 % clear temporary variables
@@ -140,7 +124,7 @@ clear A2 A3 Tmp;
 clear f;
 whos;
 
-% We are ready to run simulation in MPCS2analytic.m or MPCS2numeric.m
+% We are ready to run simulation in MPCS2analytic.m
 
 
 

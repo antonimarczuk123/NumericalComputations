@@ -44,16 +44,16 @@ u = u0 * ones(1, N_sim);
 
 x_ref = [
     % CA reference trajectory
-    CA_p * ones(1, N_sim) - 0.05 * (t >= 1) + 0.05 * (t >= 10) + 0.05 * (t >= 35);
+    CA_p * ones(1, N_sim) - 0 * (t >= 1) + 0 * (t >= 10) + 0 * (t >= 35);
     % T reference trajectory
     T_p * ones(1, N_sim) + 5 * (t >= 15) - 10 * (t >= 30);
 ];
 
 z = [
     % Tin disturbance trajectory
-    Tin_p * ones(1, N_sim) + 20 * (t >= 5) - 40 * (t >= 30);
+    Tin_p * ones(1, N_sim) + 0 * (t >= 5) - 0 * (t >= 30);
     % TCin disturbance trajectory
-    TCin_p * ones(1, N_sim) + 20 * (t >= 20) - 40 * (t >= 40);
+    TCin_p * ones(1, N_sim) + 0 * (t >= 20) - 0 * (t >= 40);
 ];
 
 

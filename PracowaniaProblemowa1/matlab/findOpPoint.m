@@ -26,24 +26,48 @@ F = 1; % m^3/min
 % Disturbance variables: Tin, TCin
 
 % Operating point - control and disturbances
-CAin_p = 1.5; % kmol/m^3
-FC_p = 15; % m^3/min
+CAin_p = 2.0; % kmol/m^3
+FC_p = 7; % m^3/min
 Tin_p = 343; % K
 TCin_p = 310; % K
+
+% CAin: 
+% ---------------------------
+% 2.0
+
+% FC:
+% ---------------------------
+% 7
+% 9
+% 12
+% 15
+% 17
+% 18
+
+% CA:
+% ---------------------------
+% 3.487884655658222e-02 = 0.0348784655658222
+% 5.557088024052338e-02 = 0.05557088024052338
+% 9.821109463204293e-02 = 0.09821109463204293
+% 1.597172021766315e-01 = 0.1597172021766315
+% 2.169364570631375e-01 = 0.2169364570631375
+% 1.828622864494349e+00 = 1.828622864494349
+
+% T:
+% ---------------------------
+% 4.385550598263770e+02 = 438.5550598263770
+% 4.278255516809578e+02 = 427.8255516809578
+% 4.152091350393931e+02 = 415.2091350393931
+% 4.047356680017397e+02 = 404.7356680017397
+% 3.982004016808073e+02 = 398.2004016808073
+% 3.280431883372068e+02 = 328.0431883372068
+
 
 % Approximate values of the output at the operating point
 CA_p = 0.16; % kmol/m^3
 T_p = 405; % K
 
-Tend = 15; % min
-
-% Inputs
-CAin = @(t) CAin_p + 0 * (t > 1);
-FC = @(t) FC_p - 0 * (t > 1);
-
-% Disturbances
-Tin = @(t) Tin_p + 0 * (t > 1);
-TCin = @(t) TCin_p + 0 * (t > 1);
+Tend = 1000; % min
 
 % Nonlinear model for ode45, x = [CA; T]
 f_ode = @(t, x) [
@@ -52,7 +76,8 @@ f_ode = @(t, x) [
 ];
 
 % symulacja ode45
-[t, x] = ode45(f_ode, [0 Tend], [CA_p; T_p], odeset('RelTol',1e-8,'AbsTol',1e-10));
+% [t, x] = ode45(f_ode, [0 Tend], [CA_p; T_p], odeset('RelTol',1e-8,'AbsTol',1e-10));
+[t, x] = ode15s(f_ode, [0 Tend], [CA_p; T_p], odeset('RelTol',1e-8,'AbsTol',1e-10));
 
 fprintf("Punkt pracy (CA_p, T_p):\n");
 disp(x(end,:));
@@ -70,3 +95,13 @@ plot(t, x(:,2), 'r-', 'LineWidth', 2);
 xlabel('Czas (min)'); ylabel('Temperatura T (K)');
 title('Odpowiedź układu - temperatura T');
 grid on; grid minor;
+
+
+
+
+
+
+
+
+
+

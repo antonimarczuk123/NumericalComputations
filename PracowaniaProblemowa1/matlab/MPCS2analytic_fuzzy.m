@@ -44,16 +44,16 @@ u = u0 * ones(1, N_sim);
 
 x_ref = [
     % CA reference trajectory
-    CA_p * ones(1, N_sim) - 0.05 * (t >= 1) + 0.05 * (t >= 10) + 0.05 * (t >= 35);
+    CA_p * ones(1, N_sim) - 0 * (t >= 1) + 0 * (t >= 10) + 0 * (t >= 35);
     % T reference trajectory
     T_p * ones(1, N_sim) + 5 * (t >= 15) - 10 * (t >= 30);
 ];
 
 z = [
     % Tin disturbance trajectory
-    Tin_p * ones(1, N_sim) + 20 * (t >= 5) - 40 * (t >= 30);
+    Tin_p * ones(1, N_sim) + 0 * (t >= 5) - 0 * (t >= 30);
     % TCin disturbance trajectory
-    TCin_p * ones(1, N_sim) + 20 * (t >= 20) - 40 * (t >= 40);
+    TCin_p * ones(1, N_sim) + 0 * (t >= 20) - 0 * (t >= 40);
 ];
 
 
@@ -77,17 +77,8 @@ for k = 2:N_sim-1
     X0 = At * (x_curr - xp) + Vt * (Bd*(u_prev - up) + Ed*(z_curr - zp) + vk);
     Xref = repmat(x_ref_curr - xp, N, 1);
 
-    ff = -2 * Mt' * Q * (Xref - X0);
-    bb = [
-        -repmat(u_min - up, Nu, 1) + repmat(u_prev - up, Nu, 1);
-        repmat(u_max - up, Nu, 1) - repmat(u_prev - up, Nu, 1);
-    ];
-
-    dU_min = repmat(du_min, Nu, 1);
-    dU_max = repmat(du_max, Nu, 1);
-
-    dUk = quadprog(H, ff, AA, bb, [], [], dU_min, dU_max);
-    duk = dUk(1:nu);
+    duk = K1 * (Xref - X0);
+    duk = max(du_min, min(du_max, duk));
 
     u_curr = u_prev + duk;
     u_curr = max(u_min, min(u_max, u_curr));
