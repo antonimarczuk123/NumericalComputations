@@ -100,13 +100,10 @@ for k = 2:N_sim-1
         mf_val_sum = mf_val_sum + mf_val{ii};
     end
     
-    % duk = [0;0];
-    % for ii = 1:n_fuzzy
-    %     duk = duk + (mf_val{ii}/mf_val_sum) * dukf{ii};
-    % end
-
-    [~, max_idx] = max(cell2mat(mf_val));
-    duk = dukf{max_idx};
+    duk = [0;0];
+    for ii = 1:n_fuzzy
+        duk = duk + (mf_val{ii}/mf_val_sum) * dukf{ii};
+    end
 
     duk = max(du_min, min(du_max, duk));
     u_curr = u_prev + duk;

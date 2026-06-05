@@ -104,7 +104,7 @@ for i=1:Nu
     Mt((i-1)*nx+1 : end, (i-1)*nu+1 : i*nu) = Vt(1 : nn - (i-1)*nx, :) * Bd;
 end
 
-lambda = 100; % control penalty
+lambda = 20; % control penalty
 Q = kron(eye(N), diag([10000, 1]));
 R = lambda * kron(eye(Nu), diag([20, 0.1]));
 
