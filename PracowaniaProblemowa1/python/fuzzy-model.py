@@ -80,23 +80,16 @@ max_X = jnp.array([CA_max, T_max, CAin_max, FC_max, Tin_max, TCin_max])
 
 # Próbki uczące
 key, subkey = jrd.split(key)
-X_train_raw = jrd.uniform(subkey, (n_train, n_inputs), minval=min_X, maxval=max_X)
-Y_train_raw = vmap_Fun(X_train_raw)
+X_train = jrd.uniform(subkey, (n_train, n_inputs), minval=min_X, maxval=max_X)
+Y_train = vmap_Fun(X_train)
 
 # Próbki walidujące
 key, subkey = jrd.split(key)
-X_val_raw = jrd.uniform(subkey, (n_val, n_inputs), minval=min_X, maxval=max_X)
-Y_val_raw = vmap_Fun(X_val_raw)
+X_val = jrd.uniform(subkey, (n_val, n_inputs), minval=min_X, maxval=max_X)
+Y_val = vmap_Fun(X_val)
 
-# --- NORMALIZACJA MIN-MAX ---
-min_Y = jnp.min(Y_train_raw, axis=0)
-max_Y = jnp.max(Y_train_raw, axis=0)
-
-X_train = (X_train_raw - min_X) / (max_X - min_X)
-Y_train = (Y_train_raw - min_Y) / (max_Y - min_Y)
-
-X_val = (X_val_raw - min_X) / (max_X - min_X)
-Y_val = (Y_val_raw - min_Y) / (max_Y - min_Y)
+# Obliczenie wariancji Y
+Y_var = jnp.var(Y_train, axis=0)
 
 
 # %% =================================================================
@@ -117,15 +110,15 @@ def initialize_ts(key):
     
     # Inicjalizacja zbiorów rozmytych dla y0
     n0 = 5 # liczba zbiorów rozmytych dla y0
-    y0_means = jnp.linspace(0.0, 1.0, n0)
+    y0_means = jnp.linspace(CA_min, CA_max, n0)
     dist = y0_means[1] - y0_means[0]
-    y0_stds = jnp.full((n0,), 0.6 * dist)
+    y0_stds = jnp.full((n0,), 0.5 * dist)
     
     # Inicjalizacja zbiorów rozmytych dla y1
     n1 = 5 # liczba zbiorów rozmytych dla y1
-    y1_means = jnp.linspace(0.0, 1.0, n1)
+    y1_means = jnp.linspace(T_min, T_max, n1)
     dist = y1_means[1] - y1_means[0]
-    y1_stds = jnp.full((n1,), 0.6 * dist)
+    y1_stds = jnp.full((n1,), 0.5 * dist)
 
     # Inicjalizacja wag dla reguł TS
     n_rules = n0 * n1 # liczba reguł TS
@@ -183,7 +176,7 @@ vmap_ts_forward = vmap(ts_forward, in_axes=(None, 0), out_axes=0)
 
 def single_loss(params, x, y):
     y_pred = ts_forward(params, x)
-    return jnp.sum((y_pred - y) ** 2)
+    return (y_pred[0] - y[0]) ** 2 / Y_var[0] + (y_pred[1] - y[1]) ** 2 / Y_var[1]
 
 vmap_single_loss = vmap(single_loss, in_axes=(None, 0, 0), out_axes=0)
 
@@ -236,7 +229,7 @@ best_params = None
 # Uczenie
 
 max_epochs = 100 # maksymalna liczba epok
-max_iter = 1000 # maksymalna liczba iteracji na epokę
+max_iter = 5000 # maksymalna liczba iteracji na epokę
 mb_size = 64 # rozmiar mini-batcha
 
 train_losses = np.zeros(max_epochs)
@@ -284,6 +277,31 @@ ax.legend()
 # ax.minorticks_on()
 # ax.grid(True, which='major', linestyle='-')
 # ax.grid(True, which='minor', linestyle='--', alpha=0.5)
+
+Y_train_pred = vmap_ts_forward(params, X_train)
+Y_val_pred = vmap_ts_forward(params, X_val)
+
+fig3 = plt.figure()
+ax = fig3.add_subplot(111)
+ax.scatter(Y_val[:, 0], Y_val_pred[:, 0], s=4)
+ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
+ax.set_title('Val set - CA')
+ax.set_xlabel('True values')
+ax.set_ylabel('Predicted values')
+ax.minorticks_on()
+ax.grid(True, which='major', linestyle='-')
+ax.grid(True, which='minor', linestyle='--', alpha=0.5)
+
+fig4 = plt.figure()
+ax = fig4.add_subplot(111)
+ax.scatter(Y_val[:, 1], Y_val_pred[:, 1], s=4)
+ax.plot(ax.get_xlim(), ax.get_xlim(), 'r--') # linia y=x
+ax.set_title('Val set - T')
+ax.set_xlabel('True values')
+ax.set_ylabel('Predicted values')
+ax.minorticks_on()
+ax.grid(True, which='major', linestyle='-')
+ax.grid(True, which='minor', linestyle='--', alpha=0.5)
 
 plt.show()
 

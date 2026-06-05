@@ -26,7 +26,7 @@ F = 1; % m^3/min
 % Disturbance variables: Tin, TCin
 
 % Operating point - control and disturbances
-CAin_p = 2; % kmol/m^3
+CAin_p = 1.5; % kmol/m^3
 FC_p = 15; % m^3/min
 Tin_p = 343; % K
 TCin_p = 310; % K
