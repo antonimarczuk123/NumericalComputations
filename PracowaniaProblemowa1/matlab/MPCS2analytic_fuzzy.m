@@ -15,14 +15,23 @@ du_min = [dCAin_min; dFC_min];
 du_max = [dCAin_max; dFC_max];
 
 % operating point
-xp = [CA_p; T_p];
-up = [CAin_p; FC_p];
-zp = [Tin_p; TCin_p];
+xp = cell(6, 1);
+up = cell(6, 1);
+zp = cell(6, 1);
+for iif = 1:6
+    CA_p = CA_p_tab(iif);
+    T_p = T_p_tab(iif);
+    FC_p = FC_p_tab(iif);
+
+    xp{iif} = [CA_p; T_p];
+    up{iif} = [CAin_p; FC_p];
+    zp{iif} = [Tin_p; TCin_p];
+end
 
 % initial state, control, disturbance
-x0 = xp;
-u0 = up;
-z0 = zp;
+x0 = [0.16; 405];
+u0 = [2; 15];
+z0 = [343; 310];
 
 % object equations (continuous and nonlinear)
 f = @(x, u, z) [
@@ -44,21 +53,24 @@ u = u0 * ones(1, N_sim);
 
 x_ref = [
     % CA reference trajectory
-    CA_p * ones(1, N_sim) - 0 * (t >= 1) + 0 * (t >= 10) + 0 * (t >= 35);
+    0.16 * ones(1, N_sim) - 0 * (t >= 1) + 0 * (t >= 10) + 0 * (t >= 35);
     % T reference trajectory
-    T_p * ones(1, N_sim) + 5 * (t >= 15) - 10 * (t >= 30);
+    405 * ones(1, N_sim) + 5 * (t >= 15) - 10 * (t >= 30);
 ];
 
 z = [
     % Tin disturbance trajectory
-    Tin_p * ones(1, N_sim) + 0 * (t >= 5) - 0 * (t >= 30);
+    343 * ones(1, N_sim) + 0 * (t >= 5) - 0 * (t >= 30);
     % TCin disturbance trajectory
-    TCin_p * ones(1, N_sim) + 0 * (t >= 20) - 0 * (t >= 40);
+    310 * ones(1, N_sim) + 0 * (t >= 20) - 0 * (t >= 40);
 ];
 
 
 % ================================================================================
 % MPCS simulation loop
+
+dukf = cell(6, 1);
+mf_val = cell(6, 1);
 
 for k = 2:N_sim-1
     x_ref_curr = x_ref(:, k);
@@ -73,13 +85,27 @@ for k = 2:N_sim-1
 
     % ---------- MPCS control law
 
-    vk = (x_curr - xp) - (Ad*(x_prev - xp) + Bd*(u_prev - up) + Ed*(z_prev - zp));
-    X0 = At * (x_curr - xp) + Vt * (Bd*(u_prev - up) + Ed*(z_curr - zp) + vk);
-    Xref = repmat(x_ref_curr - xp, N, 1);
+    for ii = 1:6
+        vk = (x_curr - xp{ii}) - (Adf{ii}*(x_prev - xp{ii}) + Bdf{ii}*(u_prev - up{ii}) + Edf{ii}*(z_prev - zp{ii}));
+        X0 = Atf{ii} * (x_curr - xp{ii}) + Vtf{ii} * (Bdf{ii}*(u_prev - up{ii}) + Edf{ii}*(z_curr - zp{ii}) + vk);
+        Xref = repmat(x_ref_curr - xp{ii}, N, 1);
+        duk1 = K1f{ii} * (Xref - X0);
+        dukf{ii} = duk1;
+    end
 
-    duk = K1 * (Xref - X0);
+    FC_prev = u_prev(2);
+    mf_val_sum = 0;
+    for ii = 1:6
+        mf_val{ii} = mf{ii}(FC_prev);
+        mf_val_sum = mf_val_sum + mf_val{ii};
+    end
+    
+    duk = [0;0];
+    for ii = 1:6
+        duk = duk + (mf_val{ii}/mf_val_sum) * dukf{ii};
+    end
+
     duk = max(du_min, min(du_max, duk));
-
     u_curr = u_prev + duk;
     u_curr = max(u_min, min(u_max, u_curr));
 
