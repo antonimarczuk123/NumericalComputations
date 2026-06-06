@@ -5,7 +5,7 @@
 CAin_min = 0.01; CAin_max = 10; % kmol/m^3
 dCAin_min = -0.5; dCAin_max = 0.5; % kmol/(m^3*min)
 
-FC_min = 0.1; FC_max = 100; % m^3/min
+FC_min = 0.1; FC_max = 80; % m^3/min
 dFC_min = -5; dFC_max = 5; % m^3/(min^2)
 
 u_min = [CAin_min; FC_min];
@@ -13,20 +13,6 @@ u_max = [CAin_max; FC_max];
 
 du_min = [dCAin_min; dFC_min];
 du_max = [dCAin_max; dFC_max];
-
-% operating point
-xp = cell(n_fuzzy, 1);
-up = cell(n_fuzzy, 1);
-zp = cell(n_fuzzy, 1);
-for ii = 1:n_fuzzy
-    CA_p = CA_p_tab(ii);
-    T_p = T_p_tab(ii);
-    FC_p = FC_p_tab(ii);
-
-    xp{ii} = [CA_p; T_p];
-    up{ii} = [CAin_p; FC_p];
-    zp{ii} = [Tin_p; TCin_p];
-end
 
 % initial state, control, disturbance
 x0 = [0.16; 405];
@@ -51,26 +37,32 @@ t = linspace(0, Tend, N_sim); % time vector
 x = x0 * ones(1, N_sim);
 u = u0 * ones(1, N_sim);
 
+
 x_ref = [
     % CA reference trajectory
-    0.16 * ones(1, N_sim) - 0.05 * (t >= 1) + 0 * (t >= 10) - 0 * (t >= 35);
+    x0(1) * ones(1, N_sim) + 0.05 * (t >= 1) + 0 * (t >= 10) - 0.05 * (t >= 35);
     % T reference trajectory
-    405 * ones(1, N_sim) - 10 * (t >= 15) + 20 * (t >= 30);
+    x0(2) * ones(1, N_sim) - 10 * (t >= 15) + 0 * (t >= 30);
 ];
 
 z = [
     % Tin disturbance trajectory
-    343 * ones(1, N_sim) + 0 * (t >= 5) - 0 * (t >= 30);
+    z0(1) * ones(1, N_sim) + 0 * (t >= 5) - 0 * (t >= 30);
     % TCin disturbance trajectory
-    310 * ones(1, N_sim) + 0 * (t >= 20) - 0 * (t >= 40);
+    z0(2) * ones(1, N_sim) + 0 * (t >= 20) + 0 * (t >= 40);
 ];
 
 
 % ================================================================================
 % MPCS simulation loop
 
-dukf = cell(n_fuzzy, 1);
-mf_val = cell(n_fuzzy, 1);
+A = zeros(2, 2);
+B = zeros(2, 2);
+E = [0, 0; Fin/V, 0];
+
+Ad = zeros(2, 2);
+Bd = zeros(2, 2);
+Ed = zeros(2, 2);
 
 for k = 2:N_sim-1
     x_ref_curr = x_ref(:, k);
@@ -85,28 +77,36 @@ for k = 2:N_sim-1
 
     % ---------- MPCS control law
 
-    for ii = 1:n_fuzzy
-        vk = (x_curr - xp{ii}) - (Adf{ii}*(x_prev - xp{ii}) + Bdf{ii}*(u_prev - up{ii}) + Edf{ii}*(z_prev - zp{ii}));
-        X0 = Atf{ii} * (x_curr - xp{ii}) + Vtf{ii} * (Bdf{ii}*(u_prev - up{ii}) + Edf{ii}*(z_curr - zp{ii}) + vk);
-        Xref = repmat(x_ref_curr - xp{ii}, N, 1);
-        duk1 = K1f{ii} * (Xref - X0);
-        dukf{ii} = duk1;
-    end
+    b1 = beta1_fun(x_curr(2));
+    b2 = beta2_fun(x_curr(2), u_prev(2), z_curr(2));
 
-    FC_prev = u_prev(2);
+    A = [-F/V - k0 * b1, 0; (h*k0)/(ro*cp) * b1, -F/V];
+    B = [Fin/V, 0; 0, b2];
+
+
+
+
+
     mf_val_sum = 0;
-    for ii = 1:n_fuzzy
-        mf_val{ii} = mf{ii}(FC_prev);
+    for ii = 1:9
+        vk = x_curr - (Ad{ii}*x_prev + Bd{ii}*u_prev + Ed{ii}*z_prev);
+        X0 = At{ii}*x_curr + Vt{ii} * (Bd{ii}*u_prev + Ed{ii}*z_curr + vk);
+        Xref = repmat(x_ref_curr, N, 1);
+        du_ii = K1{ii} * (Xref - X0);
+        du_ii = max(du_min, min(du_max, du_ii));
+        du_val{ii} = du_ii;
+
+        mf_val{ii} = mf{ii}(b1, b2);
         mf_val_sum = mf_val_sum + mf_val{ii};
     end
-    
-    duk = [0;0];
-    for ii = 1:n_fuzzy
-        duk = duk + (mf_val{ii}/mf_val_sum) * dukf{ii};
+
+    du = [0;0];
+    for ii = 1:9
+        du = du + (mf_val{ii}/mf_val_sum) * du_val{ii};
     end
 
-    duk = max(du_min, min(du_max, duk));
-    u_curr = u_prev + duk;
+    du = max(du_min, min(du_max, du));
+    u_curr = u_prev + du;
     u_curr = max(u_min, min(u_max, u_curr));
 
     u(:, k) = u_curr;

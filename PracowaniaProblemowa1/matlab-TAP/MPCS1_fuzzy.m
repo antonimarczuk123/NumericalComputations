@@ -143,14 +143,14 @@ for ii = 1:n_fuzzy
 end
 
 mf = cell(n_fuzzy, 1);
-mf{1} = @(FC) trapmf(FC, [-1e7, -1e6, 7, 9]);
-mf{2} = @(FC) trimf(FC, [7, 9, 12]);
-mf{3} = @(FC) trimf(FC, [9, 12, 15]);
-mf{4} = @(FC) trimf(FC, [12, 15, 17]);
-mf{5} = @(FC) trimf(FC, [15, 17, 18]);
-mf{6} = @(FC) trapmf(FC, [17, 18, 1e6, 1e7]);
+mf{1} = @(FC) trapmf(FC, [-1e7, -1e6, 7, 8.1]);
+mf{2} = @(FC) trimf(FC, [7.9, 9, 10.6]);
+mf{3} = @(FC) trimf(FC, [10.4, 12, 13.6]);
+mf{4} = @(FC) trimf(FC, [13.4, 15, 16.1]);
+mf{5} = @(FC) trimf(FC, [15.9, 17, 17.6]);
+mf{6} = @(FC) trapmf(FC, [17.4, 18, 1e6, 1e7]);
 
-FC_test = 0:0.1:30;
+FC_test = 5:0.1:20;
 figure;
 for ii = 1:n_fuzzy
     plot(FC_test, mf{ii}(FC_test), 'LineWidth', 2); hold on;

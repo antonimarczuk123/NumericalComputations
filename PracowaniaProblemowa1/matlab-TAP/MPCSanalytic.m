@@ -2,10 +2,10 @@
 % Before running this file, run MPCS1.m to compute the MPCS matrices.
 % Then run MPCS2analytic.m or MPCS2numeric to simulate the closed-loop system.
 
-CAin_min = 0.01; CAin_max = 6; % kmol/m^3
+CAin_min = 0.01; CAin_max = 10; % kmol/m^3
 dCAin_min = -0.5; dCAin_max = 0.5; % kmol/(m^3*min)
 
-FC_min = 0.1; FC_max = 60; % m^3/min
+FC_min = 0.1; FC_max = 100; % m^3/min
 dFC_min = -5; dFC_max = 5; % m^3/(min^2)
 
 u_min = [CAin_min; FC_min];
@@ -44,16 +44,16 @@ u = u0 * ones(1, N_sim);
 
 x_ref = [
     % CA reference trajectory
-    0.16 * ones(1, N_sim) - 0.05 * (t >= 1) + 0 * (t >= 10) - 0 * (t >= 35);
+    0.16 * ones(1, N_sim) + 0.05 * (t >= 1) + 0 * (t >= 10) - 0.05 * (t >= 35);
     % T reference trajectory
-    405 * ones(1, N_sim) - 10 * (t >= 15) + 20 * (t >= 30);
+    405 * ones(1, N_sim) - 20 * (t >= 15) - 0 * (t >= 30);
 ];
 
 z = [
     % Tin disturbance trajectory
-    343 * ones(1, N_sim) + 0 * (t >= 5) - 0 * (t >= 30);
+    343 * ones(1, N_sim) + 20 * (t >= 5) - 20 * (t >= 30);
     % TCin disturbance trajectory
-    310 * ones(1, N_sim) + 0 * (t >= 20) - 0 * (t >= 40);
+    310 * ones(1, N_sim) + 10 * (t >= 20) + 10 * (t >= 40);
 ];
 
 
