@@ -5,7 +5,7 @@
 CAin_min = 0.01; CAin_max = 10; % kmol/m^3
 dCAin_min = -0.5; dCAin_max = 0.5; % kmol/(m^3*min)
 
-FC_min = 0.1; FC_max = 100; % m^3/min
+FC_min = 0.1; FC_max = 80; % m^3/min
 dFC_min = -5; dFC_max = 5; % m^3/(min^2)
 
 u_min = [CAin_min; FC_min];
