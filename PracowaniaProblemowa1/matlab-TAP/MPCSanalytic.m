@@ -20,9 +20,16 @@ up = [CAin_p; FC_p];
 zp = [Tin_p; TCin_p];
 
 % initial state, control, disturbance
-x0 = xp;
-u0 = up;
-z0 = zp;
+CA0 = 0.16; % kmol/m^3
+T0 = 405; % K
+Tin0 = 343; % K
+TCin0 = 310; % K
+CAin0 = 2; % kmol/m^3
+FC0 = 15; % m^3/min
+
+x0 = [CA0; T0];
+u0 = [CAin0; FC0];
+z0 = [Tin0; TCin0];
 
 % object equations (continuous and nonlinear)
 f = @(x, u, z) [
@@ -44,16 +51,16 @@ u = u0 * ones(1, N_sim);
 
 x_ref = [
     % CA reference trajectory
-    0.16 * ones(1, N_sim) + 0.05 * (t >= 1) + 0 * (t >= 10) - 0.05 * (t >= 35);
+    CA0 * ones(1, N_sim) + 0.1 * (t >= 1) - 0.05 * (t >= 10) - 0.05 * (t >= 35);
     % T reference trajectory
-    405 * ones(1, N_sim) - 20 * (t >= 15) - 0 * (t >= 30);
+    T0 * ones(1, N_sim) - 10 * (t >= 15) - 10 * (t >= 30) + 30 * (t >= 40);
 ];
 
 z = [
     % Tin disturbance trajectory
-    343 * ones(1, N_sim) + 20 * (t >= 5) - 20 * (t >= 30);
+    Tin0 * ones(1, N_sim) + 30 * (t >= 5) - 60 * (t >= 30);
     % TCin disturbance trajectory
-    310 * ones(1, N_sim) + 10 * (t >= 20) + 10 * (t >= 40);
+    TCin0 * ones(1, N_sim) + 30 * (t >= 20) - 60 * (t >= 40);
 ];
 
 
@@ -94,6 +101,7 @@ for k = 2:N_sim-1
         k4 = f(x_next + h_step*k3, u_curr, z_curr);
         x_next = x_next + (h_step/6)*(k1 + 2*k2 + 2*k3 + k4);
     end
+    % x(:, k+1) = x_next + 0.0002 * [CA_p; T_p] * randn(); % add some noise to make it more realistic
     x(:, k+1) = x_next;
 end
 
