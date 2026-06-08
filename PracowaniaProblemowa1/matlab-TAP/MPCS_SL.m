@@ -1,4 +1,6 @@
 %% ================================================================================
+% Regulator MPCS z sukcesywną linearyzacją.
+
 clear; clc;
 
 % Parameters

@@ -1,6 +1,8 @@
 %% findOpPoint.m
 % ================================================================================
-% Finding the operating point for the nonlinear system.
+% Skrypt do znajdowania punktów równowagi objektu.
+
+
 clear; clc;
 format long e;
 

@@ -1,6 +1,5 @@
 %% ================================================================================
-% Run this file first to compute the MPCS matrices. 
-% Then run MPCS2analytic.m or MPCS2numeric.m to simulate the closed-loop system.
+% Skrypt przygotowujący zmienne i macierze do działania regulatora rozmytego MPCS po zmiennej FC.
 
 clear; clc;
 

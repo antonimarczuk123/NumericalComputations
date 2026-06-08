@@ -1,6 +1,5 @@
 %% ================================================================================
-% Before running this file, run MPCS1.m to compute the MPCS matrices.
-% Then run MPCS2analytic.m or MPCS2numeric to simulate the closed-loop system.
+% Skrypt do symulacji regulatora liniowego MPCS.
 
 CAin_min = 0.01; CAin_max = 10; % kmol/m^3
 dCAin_min = -0.5; dCAin_max = 0.5; % kmol/(m^3*min)

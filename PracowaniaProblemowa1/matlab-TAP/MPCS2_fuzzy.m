@@ -1,6 +1,9 @@
 %% ================================================================================
-% Run this file first to compute the MPCS matrices. 
-% Then run MPCS2analytic.m or MPCS2numeric.m to simulate the closed-loop system.
+% Skrypt przygotowujący zmienne i macierze dla rozmytego regulatora MPCS.
+% Rozmycie mamy po T i FC, więc mamy 9 reguł rozmytych, a co za tym idzie 9 regulatorów MPCS.
+% Każdy regulator MPCS jest zbudowany na podstawie liniowej aproksymacji obiektu:
+% dx/dt = f(x, u, z) = f(xp, up, zp) + A*(x-xp) + B*(u-up) + E*(z-zp)
+% Linearyzacja nie jest w punktach równowagi!
 
 clear; clc;
 

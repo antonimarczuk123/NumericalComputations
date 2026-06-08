@@ -1,6 +1,6 @@
-%% objSim.m
-% ================================================================================
-% Definition of the nonlinear system, and linearization around the operating point.
+%% ================================================================================
+% Skrypt do badania nieliniowego objektu i jakości linearyzacji w punkcie równowagi.
+
 clear; clc;
 format short e;
 
@@ -197,21 +197,6 @@ plot(time_steps, x_disc(2,:), 'r.', 'MarkerSize', 12);
 legend('Model zlinearyzowany (ciągły)', 'Model zlinearyzowany (dyskretny - RK4)');
 title('Odpowiedź układu - temperatura T');
 grid on; grid minor;
-
-
-% ================================================================================
-% Transfer functions of the linearized model
-
-G = tf(ss(A,B,eye(2),zeros(2,2))) % for control inputs
-Gz = tf(ss(A,E,eye(2),zeros(2,2))) % for disturbance inputs
-
-% ================================================================================
-% Transfer functions of the discretized linear model
-
-Gd = tf(ss(Ad,Bd,eye(2),zeros(2,2), Ts*60)) % for control inputs
-Gdz = tf(ss(Ad,Ed,eye(2),zeros(2,2), Ts*60)) % for disturbance inputs
-% Note: Ts (sampling time) is specified in minutes not seconds, so we multiply by 60 to convert to seconds.
-
 
 
 
