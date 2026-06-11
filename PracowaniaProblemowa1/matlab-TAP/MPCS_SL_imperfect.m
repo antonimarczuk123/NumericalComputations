@@ -48,12 +48,20 @@ u0 = [CAin0; FC0];
 z0 = [Tin0; TCin0];
 
 % object equations (continuous and nonlinear)
-ff = @(CA, T, CAin, FC, Tin, TCin) [
+ff_real = @(CA, T, CAin, FC, Tin, TCin) [
     (1/V) * (Fin*CAin - F*CA - V * k0 * exp(-E_R/T) * CA);
     (1/(V*ro*cp)) * (Fin*ro*cp*Tin - F*ro*cp*T + V*h*k0*exp(-E_R/T)*CA - (a * FC^(b+1) / (FC + (a * FC^b) / (2 * roc * cpc))) * (T - TCin))
 ];
 
-f = @(x, u, z) ff(x(1), x(2), u(1), u(2), z(1), z(2));
+f_real = @(x, u, z) ff_real(x(1), x(2), u(1), u(2), z(1), z(2));
+
+% imperfect model
+ff = @(CA, T, CAin, FC) [
+    (1/V) * (Fin*CAin - F*CA - V * k0 * exp(-E_R/T) * CA);
+    (1/(V*ro*cp)) * (Fin*ro*cp*343 - F*ro*cp*T + V*h*k0*exp(-E_R/T)*CA - (a * FC^(b+1) / (FC + (a * FC^b) / (2 * roc * cpc))) * (T - 310))
+];
+
+f = @(x, u, z) ff(x(1), x(2), u(1), u(2));
 
 Tend = 50; % simulation time [min]
 N_sim = floor(Tend/Ts); % number of time steps
@@ -86,11 +94,9 @@ z = [
 
 A = zeros(2, 2);
 B = zeros(2, 2);
-E = zeros(2, 2);
 
 Ad = zeros(2, 2);
 Bd = zeros(2, 2);
-Ed = zeros(2, 2);
 
 N = 20; % prediction horizon
 Nu = 2; % control horizon
@@ -125,31 +131,25 @@ for k = 2:N_sim-1
 
     CA_p = x_curr(1); T_p = x_curr(2);
     CAin_p = u_prev(1); FC_p = u_prev(2);
-    Tin_p = z_curr(1); TCin_p = z_curr(2);
 
     xp = [CA_p; T_p];
     up = [CAin_p; FC_p];
-    zp = [Tin_p; TCin_p];
 
-    Df_CA_p     =   (ff(CA_p + 1e-8, T_p, CAin_p, FC_p, Tin_p, TCin_p) - ff(CA_p, T_p, CAin_p, FC_p, Tin_p, TCin_p)) / 1e-8;
-    Df_T_p      =   (ff(CA_p, T_p + 1e-8, CAin_p, FC_p, Tin_p, TCin_p) - ff(CA_p, T_p, CAin_p, FC_p, Tin_p, TCin_p)) / 1e-8;
-    Df_CAin_p   =   (ff(CA_p, T_p, CAin_p + 1e-8, FC_p, Tin_p, TCin_p) - ff(CA_p, T_p, CAin_p, FC_p, Tin_p, TCin_p)) / 1e-8;
-    Df_FC_p     =   (ff(CA_p, T_p, CAin_p, FC_p + 1e-8, Tin_p, TCin_p) - ff(CA_p, T_p, CAin_p, FC_p, Tin_p, TCin_p)) / 1e-8;
-    Df_Tin_p    =   (ff(CA_p, T_p, CAin_p, FC_p, Tin_p + 1e-8, TCin_p) - ff(CA_p, T_p, CAin_p, FC_p, Tin_p, TCin_p)) / 1e-8;
-    Df_TCin_p   =   (ff(CA_p, T_p, CAin_p, FC_p, Tin_p, TCin_p + 1e-8) - ff(CA_p, T_p, CAin_p, FC_p, Tin_p, TCin_p)) / 1e-8;
+    Df_CA_p     =   (ff(CA_p + 1e-8, T_p, CAin_p, FC_p) - ff(CA_p, T_p, CAin_p, FC_p)) / 1e-8;
+    Df_T_p      =   (ff(CA_p, T_p + 1e-8, CAin_p, FC_p) - ff(CA_p, T_p, CAin_p, FC_p)) / 1e-8;
+    Df_CAin_p   =   (ff(CA_p, T_p, CAin_p + 1e-8, FC_p) - ff(CA_p, T_p, CAin_p, FC_p)) / 1e-8;
+    Df_FC_p     =   (ff(CA_p, T_p, CAin_p, FC_p + 1e-8) - ff(CA_p, T_p, CAin_p, FC_p)) / 1e-8;
 
     A = [Df_CA_p, Df_T_p];
     B = [Df_CAin_p, Df_FC_p];
-    E = [Df_Tin_p, Df_TCin_p];
 
-    alfa = ff(CA_p, T_p, CAin_p, FC_p, Tin_p, TCin_p);
+    alfa = ff(CA_p, T_p, CAin_p, FC_p);
 
     % discretization using trapezoidal rule
 
     tmp1 = eye(2) - Ts/2 * A;
     Ad = tmp1 \ (eye(2) + Ts/2 * A);
     Bd = tmp1 \ (Ts * B);
-    Ed = tmp1 \ (Ts * E);
     alfad = tmp1 \ (alfa * Ts);
 
     % MPCS
@@ -169,11 +169,11 @@ for k = 2:N_sim-1
     K = (M' * Q * M + R) \ (M' * Q);
     K1 = K(1:nu, :);
 
-    d = (x_curr - xp) - (Ad * (x_prev - xp) + Bd * (u_prev - up) + Ed * (z_prev - zp) + alfad);
+    d = (x_curr - xp) - (Ad * (x_prev - xp) + Bd * (u_prev - up) + alfad);
 
     xtmp = x_curr - xp; % liczymy trajektorię swobodną
     for i=1:N
-        xtmp = Ad * xtmp + Bd * (u_prev - up) + Ed * (z_curr - zp) + alfad + d;
+        xtmp = Ad * xtmp + Bd * (u_prev - up) + alfad + d;
         X0((i-1)*nx+1 : i*nx) = xtmp;
     end
 
@@ -191,10 +191,10 @@ for k = 2:N_sim-1
     % ---------- Simulation step
     x_next = x_curr;
     for i = 1:n_sim
-        k1 = f(x_next, u_curr, z_curr);
-        k2 = f(x_next + 0.5*h_step*k1, u_curr, z_curr);
-        k3 = f(x_next + 0.5*h_step*k2, u_curr, z_curr);
-        k4 = f(x_next + h_step*k3, u_curr, z_curr);
+        k1 = f_real(x_next, u_curr, z_curr);
+        k2 = f_real(x_next + 0.5*h_step*k1, u_curr, z_curr);
+        k3 = f_real(x_next + 0.5*h_step*k2, u_curr, z_curr);
+        k4 = f_real(x_next + h_step*k3, u_curr, z_curr);
         x_next = x_next + (h_step/6)*(k1 + 2*k2 + 2*k3 + k4);
     end
     x(:, k+1) = x_next + 0.0005 * [CA_p; T_p] * randn(); % add some noise to make it more realistic
